@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>0xDvta - Multi-Chain Forensic Unit</title>
+    
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
+
+    <style>
+        /* --- CORE THEME --- */
+        :root {
+            --neon-blue: #00f0ff;
+            --solana-color: #9945FF;
+            --base-color: #0052FF;
+            --dark-bg: #050505;
+            --text-main: #ffffff;
+            --text-dim: #8b949e;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--dark-bg);
+            color: var(--text-main);
+            font-family: 'Courier New', Courier, monospace;
+            height: 100vh; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        .background-grid {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: -1;
+        }
+
+        #landing-page {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; text-align: center; transition: opacity 0.5s ease; padding: 20px;
+        }
+
+        .logo-container img {
+            width: 120px; height: 120px; border-radius: 50%;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.2); margin-bottom: 20px;
+        }
+
+        h1 { font-size: 2.5rem; margin-bottom: 10px; letter-spacing: 1px; }
+        .subtitle { color: var(--text-dim); margin-bottom: 30px; font-size: 0.9rem; max-width: 600px; }
+
+        /* --- INPUTS & SELECTOR --- */
+        .controls-container {
+            display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 500px; margin-bottom: 30px;
+        }
+
+        .fake-input, .mode-select {
+            width: 100%; background: #0f1115; border: 1px solid #333; padding: 15px;
+            color: var(--text-main); font-family: inherit; font-size: 1rem;
+            border-radius: 6px; box-sizing: border-box;
+        }
+        
+        .mode-select { cursor: pointer; border: 1px solid var(--neon-blue); }
+        .fake-input:focus { outline: none; border-color: var(--neon-blue); }
+
+        /* --- WALLET BUTTONS --- */
+        .wallet-options {
+            display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; width: 100%;
+        }
+
+        .btn-wallet {
+            border: none; padding: 0 20px; height: 50px; border-radius: 6px;
+            font-size: 14px; font-weight: bold; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 10px; color: white;
+            transition: transform 0.2s, opacity 0.2s;
+            font-family: 'Arial', sans-serif;
+            min-width: 220px;
+        }
+
+        .btn-wallet:hover { transform: translateY(-2px); opacity: 0.9; }
+        .btn-solana { background: linear-gradient(135deg, #9945FF, #14F195); }
+        .btn-base { background: #0052FF; }
+        .btn-wallet img { width: 20px; height: 20px; }
+
+        #price-display { margin-top: 10px; color: var(--neon-blue); font-weight: bold; }
+        #status-msg { margin-top: 20px; color: #aaa; font-size: 0.8rem; min-height: 20px; }
+
+        /* Chat Container */
+        #chatbot-container { display: none; width: 100%; height: 100%; flex-grow: 1; }
+    </style>
+</head>
+<body>
+
+    <div class="background-grid"></div>
+
+    <div id="landing-page">
+        <div class="logo-container">
+            <img src="logo.png" alt="0xDvta" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2593/2593491.png'">
+        </div>
+
+        <h1>0xDvta</h1>
+        <div class="subtitle">Select your audit depth and confirm payment to start analysis.</div>
+
+        <div class="controls-container">
+            <input type="text" class="fake-input" placeholder="> Enter Target Address (Optional)" id="userInput">
+            
+            <select id="modeSelect" class="mode-select" onchange="updatePrice()">
+                <option value="basic">Basic JSON Scan (Base Only) - $0.30</option>
+                <option value="onchain" selected>On-Chain Deep Scan (+ $0.20) - TOTAL: $0.50</option>
+                <option value="technical">Technical Audit (+ $0.20) - TOTAL: $0.50</option>
+                <option value="flow">Flow / Money Trail (+ $0.15) - TOTAL: $0.45</option>
+                <option value="sniper">Sniper Watch (+ $0.10) - TOTAL: $0.40</option>
+            </select>
+        </div>
+
+        <div class="wallet-options">
+            <button class="btn-wallet btn-solana" onclick="handleSolana()">
+                <img src="https://cryptologos.cc/logos/solana-sol-logo.png?v=029">
+                <span id="btn-text-sol">PAY $0.50 (SOL)</span>
+            </button>
+
+            <button class="btn-wallet btn-base" onclick="handleBase()">
+                <img src="https://cryptologos.cc/logos/base-base-logo.png?v=035">
+                <span id="btn-text-base">PAY $0.50 (ETH)</span>
+            </button>
+        </div>
+        
+        <div id="status-msg">Ready to connect.</div>
+    </div>
+
+    <div id="chatbot-container">
+        <flowise-fullchatbot></flowise-fullchatbot>
+    </div>
+
+    <script>
+        // === CONFIGURATION ===
+        const RECEIVER_WALLET_SOL = "nzEeqCR7ZnjoZU31fgUoLfP7FEMqj968zN4UBSQyXLP";
+        const RECEIVER_WALLET_EVM = "0x71fd4359eB2da83C1BCd34f93a1C206d68b1eFba";
+        
+        // PRICING
+        const BASE_PRICE = 0.30;
+        const ADDONS = { 
+            'basic': 0.00, 
+            'onchain': 0.20, 
+            'technical': 0.20, 
+            'flow': 0.15, 
+            'sniper': 0.10 
+        };
+        
+        let currentTotalUSD = 0.50; // Default (Base + Onchain)
+
+        // --- UPDATE PRICE UI ---
+        function updatePrice() {
+            const mode = document.getElementById('modeSelect').value;
+            const addonPrice = ADDONS[mode] || 0;
+            currentTotalUSD = (BASE_PRICE + addonPrice).toFixed(2);
+            
+            document.getElementById('btn-text-sol').innerText = `PAY $${currentTotalUSD} (SOL)`;
+            document.getElementById('btn-text-base').innerText = `PAY $${currentTotalUSD} (ETH)`;
+        }
+
+        // --- SOLANA LOGIC ---
+        async function handleSolana() {
+            const provider = window.solana;
+            const statusDiv = document.getElementById('status-msg');
+            
+            if (!provider || !provider.isPhantom) {
+                window.open("https://phantom.app/", "_blank");
+                return;
+            }
+            try {
+                statusDiv.innerText = "🔌 Connecting to Solana...";
+                await provider.connect();
+                const userKey = provider.publicKey;
+
+                // Conversion dynamique USD -> SOL (Approx 1 SOL = 150$ pour l'exemple, à ajuster ou utiliser Oracle)
+                // Pour simplifier ici: 1$ = 0.007 SOL (Hypothèse conservative)
+                const solAmount = (currentTotalUSD * 0.007).toFixed(4); 
+
+                statusDiv.innerText = `💸 Processing ${solAmount} SOL ($${currentTotalUSD})...`;
+                
+                const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'), 'confirmed');
+                const transaction = new solanaWeb3.Transaction().add(
+                    solanaWeb3.SystemProgram.transfer({
+                        fromPubkey: userKey,
+                        toPubkey: new solanaWeb3.PublicKey(RECEIVER_WALLET_SOL),
+                        lamports: solAmount * solanaWeb3.LAMPORTS_PER_SOL
+                    })
+                );
+                
+                const { blockhash } = await connection.getLatestBlockhash();
+                transaction.recentBlockhash = blockhash;
+                transaction.feePayer = userKey;
+
+                const { signature } = await provider.signAndSendTransaction(transaction);
+                finishProcess(signature, "SOL");
+
+            } catch (err) {
+                console.error(err);
+                statusDiv.innerText = "❌ Solana Error: " + err.message;
+            }
+        }
+
+        // --- BASE (EVM) LOGIC ---
+        async function handleBase() {
+            const statusDiv = document.getElementById('status-msg');
+            if (typeof window.ethereum === 'undefined') {
+                alert("Please install MetaMask or Rabby!");
+                return;
+            }
+            try {
+                statusDiv.innerText = "🔌 Connecting to EVM Wallet...";
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                const signer = provider.getSigner();
+
+                // Check Base Network
+                const network = await provider.getNetwork();
+                if (network.chainId !== 8453) {
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: '0x2105' }], // 8453
+                        });
+                    } catch (e) { statusDiv.innerText = "⚠️ Please switch to Base Network manually."; return; }
+                }
+
+                // Conversion dynamique USD -> ETH (Base)
+                // Approx 1 ETH = 2500$ -> 1$ = 0.0004 ETH
+                const ethAmount = (currentTotalUSD * 0.0004).toFixed(6);
+
+                statusDiv.innerText = `💸 Processing ${ethAmount} ETH ($${currentTotalUSD})...`;
+
+                const tx = await signer.sendTransaction({
+                    to: RECEIVER_WALLET_EVM,
+                    value: ethers.utils.parseEther(ethAmount.toString())
+                });
+
+                statusDiv.innerText = "⏳ Waiting for confirmation...";
+                await tx.wait();
+                finishProcess(tx.hash, "BASE");
+
+            } catch (err) {
+                console.error(err);
+                statusDiv.innerText = "❌ EVM Error: " + (err.message || "Cancelled");
+            }
+        }
+
+        // --- SUCCESS HANDLER ---
+        async function finishProcess(hash, chain) {
+            const mode = document.getElementById('modeSelect').value;
+            const target = document.getElementById('userInput').value;
+            
+            const alertMsg = `✅ PAYMENT SUCCESSFUL (${chain})\n\nMode: ${mode.toUpperCase()}\nHash: ${hash}\n\nCopied to clipboard. Launching Agent...`;
+            await navigator.clipboard.writeText(hash);
+            alert(alertMsg);
+
+            document.getElementById('landing-page').style.display = 'none';
+            document.getElementById('chatbot-container').style.display = 'block';
+        }
+        
+        // Init price on load
+        updatePrice();
+    </script>
+
+    <script type="module">
+        import Chatbot from "https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js"
+        Chatbot.initFull({
+            chatflowid: "2e076890-5422-4489-b752-020bcc1c110c",
+            apiHost: "https://34.155.119.5.sslip.io", 
+            theme: {
+                button: { backgroundColor: "#0052FF" },
+                chatWindow: {
+                    welcomeMessage: "Forensic Unit Online.\nI've copied your Payment Hash.\n\nPaste it here to start authentication.",
+                    backgroundColor: "#050505",
+                    textInput: { placeholder: "Paste Hash...", backgroundColor: "#0f1115", textColor: "#ffffff", sendButtonColor: "#0052FF" }
+                }
+            }
+        })
+    </script>
+</body>
+</html>
+</html>
