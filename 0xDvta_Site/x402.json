@@ -8,7 +8,7 @@
   },
   "resources": [
     {
-      "path": "https://0xdvta-agent.netlify.app/.netlify/functions/gate",
+      "path": "/.netlify/functions/gate",
       "method": "POST",
       "description": "Initiate Forensic Scan",
       "contentType": "application/json",
