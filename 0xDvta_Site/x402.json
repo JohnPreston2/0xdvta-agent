@@ -3,12 +3,12 @@
   "vendor": {
     "name": "0xDvta Forensic Unit",
     "description": "Multi-chain AI auditor (Solana/Base).",
-    "url": "https://0xdvta-forensic.netlify.app/",
-    "logo": "https://0xdvta-forensic.netlify.app/logo.png"
+    "url": "https://0xdvta-agent.netlify.app/",
+    "logo": "https://0xdvta-agent.netlify.app/logo.png"
   },
   "resources": [
     {
-      "path": "/api/gate",
+      "path": "https://0xdvta-agent.netlify.app/.netlify/functions/gate",
       "method": "POST",
       "description": "Initiate Forensic Scan",
       "contentType": "application/json",
