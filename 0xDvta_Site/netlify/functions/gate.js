@@ -1,22 +1,17 @@
 exports.handler = async function(event, context) {
-    // 1. Les Headers qui autorisent tout le monde (CORS)
+    // Headers CORS permissifs pour que x402scan ne soit jamais bloqué
     const headers = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, x-payment-token",
-        "Content-Type": "application/json"
+        "Access-Control-Allow-Headers": "*"
     };
 
-    // 2. IMPORTANT : Si le scanner demande juste "C'est ouvert ?", on répond OUI (200) sans demander d'argent.
+    // 1. Gérer la pré-vérification (OPTIONS) - CRUCIAL
     if (event.httpMethod === "OPTIONS") {
-        return {
-            statusCode: 200,
-            headers: headers,
-            body: "" // Réponse vide mais positive
-        };
+        return { statusCode: 200, headers: headers, body: "" };
     }
 
-    // 3. Le contenu de la réponse 402 (Copie exacte de votre config)
+    // 2. Le contenu du paiement (JSON)
     const paymentInfo = {
         error: { message: "Payment Required", type: "payment_required" },
         accepts: [
@@ -31,10 +26,10 @@ exports.handler = async function(event, context) {
         ]
     };
 
-    // 4. Pour tout le reste (POST, GET), on demande l'argent (402)
+    // 3. Répondre 402 quoiqu'il arrive
     return {
         statusCode: 402,
-        headers: headers,
+        headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify(paymentInfo)
     };
 };
