@@ -1,16 +1,23 @@
 exports.handler = async function(event, context) {
+    // 1. Headers universels (pour éviter les erreurs CORS)
     const headers = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "*"
+        "Access-Control-Allow-Headers": "*",
+        "Content-Type": "application/json"
     };
 
+    // 2. Si le scanner demande juste si on est ouvert (OPTIONS), on dit OUI immédiatement
     if (event.httpMethod === "OPTIONS") {
         return { statusCode: 200, headers: headers, body: "" };
     }
 
-    const paymentInfo = {
-        error: { message: "Payment Required", type: "payment_required" },
+    // 3. L'objet de paiement (Données pures)
+    const paymentData = {
+        error: { 
+            message: "Payment Required", 
+            type: "payment_required" 
+        },
         accepts: [
             {
                 scheme: "item-transfer",
@@ -23,9 +30,10 @@ exports.handler = async function(event, context) {
         ]
     };
 
+    // 4. Réponse Finale : On transforme l'objet en TEXTE (JSON.stringify)
     return {
         statusCode: 402,
-        headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify(paymentInfo)
+        headers: headers,
+        body: JSON.stringify(paymentData)
     };
 };
