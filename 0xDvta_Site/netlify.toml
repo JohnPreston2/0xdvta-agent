@@ -1,12 +1,23 @@
 [build]
+  publish = "."
   functions = "netlify/functions"
 
+# Redirection de l'API vers la fonction
 [[redirects]]
   from = "/api/gate"
   to = "/.netlify/functions/gate"
   status = 200
 
+# Redirection du fichier x402 (Découverte)
 [[redirects]]
   from = "/.well-known/x402"
   to = "/x402.json"
   status = 200
+
+# Force les headers pour autoriser la lecture par le scanner
+[[headers]]
+  for = "/*"
+    [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Headers = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
