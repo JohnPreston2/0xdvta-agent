@@ -1,73 +1,24 @@
 {
-  "POST /api/analyze": {
+  "x402Version": 2,
+  "POST /.netlify/functions/analyze": {
     "accepts": [
       {
         "scheme": "exact",
-        "price": "$0.50",
         "network": "eip155:8453",
-        "payTo": "0x71fd4359eB2da83C1BCd34f93a1C206d68b1eFba"
-      }
-    ],
-    "description": "0xDvta Multi-Chain Forensic Analysis - Deep scan of Solana tokens including on-chain analysis, technical audit, money flow tracking, and sniper watch",
-    "mimeType": "application/json",
-    "parameters": {
-      "tokenAddress": {
-        "type": "string",
-        "description": "Solana token address (base58 format)",
-        "required": true,
-        "example": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
-      },
-      "analysisDepth": {
-        "type": "string",
-        "enum": ["basic", "deep", "technical", "flow", "sniper", "complete"],
-        "description": "Level of forensic analysis to perform",
-        "required": false,
-        "default": "deep"
-      },
-      "includeHolders": {
-        "type": "boolean",
-        "description": "Include holder distribution analysis",
-        "required": false,
-        "default": true
-      }
-    },
-    "responses": {
-      "200": {
-        "description": "Successful analysis",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "tokenAddress": {
-                  "type": "string"
-                },
-                "riskScore": {
-                  "type": "number",
-                  "description": "Overall risk score from 0-100"
-                },
-                "analysis": {
-                  "type": "object",
-                  "properties": {
-                    "onChainScan": {
-                      "type": "object"
-                    },
-                    "technicalAudit": {
-                      "type": "object"
-                    },
-                    "moneyFlow": {
-                      "type": "object"
-                    },
-                    "sniperWatch": {
-                      "type": "object"
-                    }
-                  }
-                }
-              }
-            }
-          }
+        "amount": "500000",
+        "payTo": "0x71fd4359eB2da83C1BCd34f93a1C206d68b1eFba",
+        "maxTimeoutSeconds": 300,
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "extra": {
+          "description": "0xDvta Solana Token Forensic Analysis",
+          "provider": "0xDvta Forensic Unit"
         }
       }
+    ],
+    "resource": {
+      "url": "https://0xdvta-agent.netlify.app/.netlify/functions/analyze",
+      "description": "Deep forensic analysis of Solana tokens including on-chain scan, technical audit, money flow tracking, and sniper watch",
+      "mimeType": "application/json"
     },
     "extensions": {
       "bazaar": {
@@ -75,25 +26,57 @@
         "category": "blockchain-analytics",
         "tags": ["solana", "forensics", "security", "token-analysis", "on-chain", "defi", "audit"],
         "provider": "0xDvta Forensic Unit",
-        "website": "https://0xdvta-agent.netlify.app",
-        "documentation": "https://0xdvta-agent.netlify.app/docs"
-      }
-    }
-  },
-  "GET /api/health": {
-    "accepts": [
-      {
-        "scheme": "exact",
-        "price": "$0.00",
-        "network": "eip155:8453",
-        "payTo": "0x71fd4359eB2da83C1BCd34f93a1C206d68b1eFba"
-      }
-    ],
-    "description": "Health check endpoint - free to call",
-    "mimeType": "application/json",
-    "extensions": {
-      "bazaar": {
-        "discoverable": false
+        "info": {
+          "input": {
+            "tokenAddress": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "analysisDepth": "deep",
+            "includeHolders": true
+          },
+          "output": {
+            "success": true,
+            "tokenAddress": "string",
+            "riskScore": 65,
+            "analysis": {
+              "onChainScan": { "status": "completed" },
+              "technicalAudit": { "status": "completed" },
+              "moneyFlow": { "status": "completed" },
+              "sniperWatch": { "status": "completed" }
+            }
+          }
+        },
+        "schema": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "tokenAddress": {
+                "type": "string",
+                "description": "Solana token address (base58 format)",
+                "required": true
+              },
+              "analysisDepth": {
+                "type": "string",
+                "enum": ["basic", "deep", "technical", "flow", "sniper", "complete"],
+                "description": "Level of forensic analysis",
+                "default": "deep"
+              },
+              "includeHolders": {
+                "type": "boolean",
+                "description": "Include holder distribution analysis",
+                "default": true
+              }
+            },
+            "required": ["tokenAddress"]
+          },
+          "output": {
+            "type": "object",
+            "properties": {
+              "success": { "type": "boolean" },
+              "tokenAddress": { "type": "string" },
+              "riskScore": { "type": "number" },
+              "analysis": { "type": "object" }
+            }
+          }
+        }
       }
     }
   }
