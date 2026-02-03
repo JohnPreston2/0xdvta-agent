@@ -1,23 +1,30 @@
+[[headers]]
+  for = "/.well-known/x402.json"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, PAYMENT-SIGNATURE, PAYMENT-RESPONSE"
+    Content-Type = "application/json"
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, PAYMENT-SIGNATURE, PAYMENT-RESPONSE"
+
 [build]
   publish = "."
-  functions = "netlify/functions"
+  command = "echo 'Static build ready'"
 
-# Redirection de l'API vers la fonction
-[[redirects]]
-  from = "/api/gate"
-  to = "/.netlify/functions/gate"
-  status = 200
-
-# Redirection du fichier x402 (Découverte)
 [[redirects]]
   from = "/.well-known/x402"
-  to = "/x402.json"
+  to = "/well-known-x402.json"
   status = 200
+  force = true
 
-# Force les headers pour autoriser la lecture par le scanner
-[[headers]]
-  for = "/*"
-    [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Headers = "*"
-    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+[[redirects]]
+  from = "/.well-known/x402.json"
+  to = "/well-known-x402.json"
+  status = 200
+  force = true
