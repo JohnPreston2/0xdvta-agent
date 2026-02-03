@@ -13,9 +13,17 @@
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type, PAYMENT-SIGNATURE, PAYMENT-RESPONSE"
 
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, PAYMENT-SIGNATURE, PAYMENT-RESPONSE"
+
 [build]
   publish = "."
   command = "echo 'Static build ready'"
+  functions = "netlify/functions"
 
 [[redirects]]
   from = "/.well-known/x402"
@@ -28,3 +36,9 @@
   to = "/well-known-x402.json"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/api/analyze"
+  to = "/.netlify/functions/analyze"
+  status = 200
+  force = false
