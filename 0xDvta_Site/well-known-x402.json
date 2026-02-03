@@ -15,6 +15,13 @@
         }
       }
     ],
+    "ownershipProofs": [
+      {
+        "address": "0x71fd4359eB2da83C1BCd34f93a1C206d68b1eFba",
+        "signature": "0xb0fe17032caec609bffe1e93f78f071fc169b6263b7e7cbe3036fb930b39ee873e2e4ef461d6050022adcb70050175515d274739201b1ded506ccf1af895cb831b",
+        "message": "https://0xdvta-agent.netlify.app"
+      }
+    ],
     "resource": {
       "url": "https://0xdvta-agent.netlify.app/.netlify/functions/analyze",
       "description": "Deep forensic analysis of Solana tokens including on-chain scan, technical audit, money flow tracking, and sniper watch",
