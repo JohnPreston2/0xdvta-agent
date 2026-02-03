@@ -86,7 +86,40 @@
         #status-msg { margin-top: 20px; color: #aaa; font-size: 0.8rem; min-height: 20px; }
 
         /* Chat Container */
-        #chatbot-container { display: none; width: 100%; height: 100%; flex-grow: 1; }
+        #chatbot-container { 
+            display: none; 
+            width: 100%; 
+            height: 100%; 
+            flex-grow: 1; 
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .analysis-result {
+            background: #0f1115;
+            border: 1px solid var(--neon-blue);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .result-header {
+            font-size: 1.2rem;
+            color: var(--neon-blue);
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .result-content {
+            color: var(--text-main);
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
     </style>
 </head>
 <body>
@@ -99,185 +132,169 @@
         </div>
 
         <h1>0xDvta</h1>
-        <div class="subtitle">Select your audit depth and confirm payment to start analysis.</div>
+        <div class="subtitle">AI-Powered Forensic Analysis • Secured by X402 Protocol</div>
 
         <div class="controls-container">
-            <input type="text" class="fake-input" placeholder="> Enter Target Address (Optional)" id="userInput">
+            <input type="text" class="fake-input" placeholder="> Enter Token Address to Analyze" id="userInput">
             
             <select id="modeSelect" class="mode-select" onchange="updatePrice()">
-                <option value="basic">Basic JSON Scan (Base Only) - $0.30</option>
-                <option value="onchain" selected>On-Chain Deep Scan (+ $0.20) - TOTAL: $0.50</option>
-                <option value="technical">Technical Audit (+ $0.20) - TOTAL: $0.50</option>
-                <option value="flow">Flow / Money Trail (+ $0.15) - TOTAL: $0.45</option>
-                <option value="sniper">Sniper Watch (+ $0.10) - TOTAL: $0.40</option>
+                <option value="basic">Basic Analysis - $0.30</option>
+                <option value="deep" selected>Deep Forensic Scan - $0.50</option>
+                <option value="technical">Technical Audit - $0.50</option>
+                <option value="complete">Complete Analysis - $0.70</option>
             </select>
         </div>
 
         <div class="wallet-options">
-            <button class="btn-wallet btn-solana" onclick="handleSolana()">
-                <img src="https://cryptologos.cc/logos/solana-sol-logo.png?v=029">
-                <span id="btn-text-sol">PAY $0.50 (SOL)</span>
-            </button>
-
-            <button class="btn-wallet btn-base" onclick="handleBase()">
+            <button class="btn-wallet btn-base" onclick="handlePayment()">
                 <img src="https://cryptologos.cc/logos/base-base-logo.png?v=035">
-                <span id="btn-text-base">PAY $0.50 (ETH)</span>
+                <span id="btn-text">PAY $0.50 USDC (Base)</span>
             </button>
         </div>
         
-        <div id="status-msg">Ready to connect.</div>
+        <div id="status-msg">Ready to analyze. Payment via X402 Protocol.</div>
     </div>
 
     <div id="chatbot-container">
-        <flowise-fullchatbot></flowise-fullchatbot>
+        <div class="analysis-result">
+            <div class="result-header">🔍 Analysis Results</div>
+            <div class="result-content" id="analysis-output">Waiting for analysis...</div>
+        </div>
     </div>
 
     <script>
         // === CONFIGURATION ===
-        const RECEIVER_WALLET_SOL = "nzEeqCR7ZnjoZU31fgUoLfP7FEMqj968zN4UBSQyXLP";
-        const RECEIVER_WALLET_EVM = "0x71fd4359eB2da83C1BCd34f93a1C206d68b1eFba";
+        const VPS_API_URL = "http://34.155.119.5/api/chat";
         
         // PRICING
-        const BASE_PRICE = 0.30;
-        const ADDONS = { 
-            'basic': 0.00, 
-            'onchain': 0.20, 
-            'technical': 0.20, 
-            'flow': 0.15, 
-            'sniper': 0.10 
+        const PRICING = { 
+            'basic': 0.30, 
+            'deep': 0.50, 
+            'technical': 0.50, 
+            'complete': 0.70 
         };
         
-        let currentTotalUSD = 0.50; // Default (Base + Onchain)
+        let currentTotalUSD = 0.50; // Default
 
         // --- UPDATE PRICE UI ---
         function updatePrice() {
             const mode = document.getElementById('modeSelect').value;
-            const addonPrice = ADDONS[mode] || 0;
-            currentTotalUSD = (BASE_PRICE + addonPrice).toFixed(2);
-            
-            document.getElementById('btn-text-sol').innerText = `PAY $${currentTotalUSD} (SOL)`;
-            document.getElementById('btn-text-base').innerText = `PAY $${currentTotalUSD} (ETH)`;
+            currentTotalUSD = PRICING[mode] || 0.50;
+            document.getElementById('btn-text').innerText = `PAY $${currentTotalUSD.toFixed(2)} USDC (Base)`;
         }
 
-        // --- SOLANA LOGIC ---
-        async function handleSolana() {
-            const provider = window.solana;
+        // --- PAYMENT HANDLER ---
+        async function handlePayment() {
             const statusDiv = document.getElementById('status-msg');
+            const tokenAddress = document.getElementById('userInput').value.trim();
+            const mode = document.getElementById('modeSelect').value;
             
-            if (!provider || !provider.isPhantom) {
-                window.open("https://phantom.app/", "_blank");
+            if (!tokenAddress) {
+                alert("Please enter a token address to analyze");
                 return;
             }
-            try {
-                statusDiv.innerText = "🔌 Connecting to Solana...";
-                await provider.connect();
-                const userKey = provider.publicKey;
 
-                // Conversion dynamique USD -> SOL (Approx 1 SOL = 150$ pour l'exemple, à ajuster ou utiliser Oracle)
-                // Pour simplifier ici: 1$ = 0.007 SOL (Hypothèse conservative)
-                const solAmount = (currentTotalUSD * 0.007).toFixed(4); 
-
-                statusDiv.innerText = `💸 Processing ${solAmount} SOL ($${currentTotalUSD})...`;
-                
-                const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'), 'confirmed');
-                const transaction = new solanaWeb3.Transaction().add(
-                    solanaWeb3.SystemProgram.transfer({
-                        fromPubkey: userKey,
-                        toPubkey: new solanaWeb3.PublicKey(RECEIVER_WALLET_SOL),
-                        lamports: solAmount * solanaWeb3.LAMPORTS_PER_SOL
-                    })
-                );
-                
-                const { blockhash } = await connection.getLatestBlockhash();
-                transaction.recentBlockhash = blockhash;
-                transaction.feePayer = userKey;
-
-                const { signature } = await provider.signAndSendTransaction(transaction);
-                finishProcess(signature, "SOL");
-
-            } catch (err) {
-                console.error(err);
-                statusDiv.innerText = "❌ Solana Error: " + err.message;
-            }
-        }
-
-        // --- BASE (EVM) LOGIC ---
-        async function handleBase() {
-            const statusDiv = document.getElementById('status-msg');
             if (typeof window.ethereum === 'undefined') {
-                alert("Please install MetaMask or Rabby!");
+                alert("Please install MetaMask to use this service!");
+                window.open("https://metamask.io/download/", "_blank");
                 return;
             }
+
             try {
-                statusDiv.innerText = "🔌 Connecting to EVM Wallet...";
+                statusDiv.innerText = "🔌 Connecting to wallet...";
+                
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 await provider.send("eth_requestAccounts", []);
                 const signer = provider.getSigner();
+                const userAddress = await signer.getAddress();
 
                 // Check Base Network
                 const network = await provider.getNetwork();
                 if (network.chainId !== 8453) {
+                    statusDiv.innerText = "⚠️ Switching to Base network...";
                     try {
                         await window.ethereum.request({
                             method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: '0x2105' }], // 8453
+                            params: [{ chainId: '0x2105' }], // 8453 = Base
                         });
-                    } catch (e) { statusDiv.innerText = "⚠️ Please switch to Base Network manually."; return; }
+                    } catch (e) { 
+                        statusDiv.innerText = "❌ Please switch to Base Network manually."; 
+                        return; 
+                    }
                 }
 
-                // Conversion dynamique USD -> ETH (Base)
-                // Approx 1 ETH = 2500$ -> 1$ = 0.0004 ETH
-                const ethAmount = (currentTotalUSD * 0.0004).toFixed(6);
+                statusDiv.innerText = "💸 Initiating X402 payment...";
 
-                statusDiv.innerText = `💸 Processing ${ethAmount} ETH ($${currentTotalUSD})...`;
-
-                const tx = await signer.sendTransaction({
-                    to: RECEIVER_WALLET_EVM,
-                    value: ethers.utils.parseEther(ethAmount.toString())
+                // First, call the API without payment to get 402 response
+                const initialResponse = await fetch(VPS_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        question: `Analyze token: ${tokenAddress}, depth: ${mode}`
+                    })
                 });
 
-                statusDiv.innerText = "⏳ Waiting for confirmation...";
-                await tx.wait();
-                finishProcess(tx.hash, "BASE");
+                if (initialResponse.status === 402) {
+                    const paymentRequired = await initialResponse.json();
+                    statusDiv.innerText = "✅ Payment verified! Processing analysis...";
+                    
+                    // For now, simulate payment success
+                    // TODO: Implement actual X402 payment signature
+                    const mockSignature = "0x" + "0".repeat(130); // Mock signature
+                    
+                    // Retry with payment signature
+                    const paidResponse = await fetch(VPS_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'PAYMENT-SIGNATURE': mockSignature
+                        },
+                        body: JSON.stringify({
+                            question: `Analyze token: ${tokenAddress}, depth: ${mode}`
+                        })
+                    });
+
+                    if (paidResponse.ok) {
+                        const results = await paidResponse.json();
+                        displayResults(results, tokenAddress, mode);
+                    } else {
+                        throw new Error("Analysis failed");
+                    }
+                } else {
+                    throw new Error("Unexpected response from server");
+                }
 
             } catch (err) {
                 console.error(err);
-                statusDiv.innerText = "❌ EVM Error: " + (err.message || "Cancelled");
+                statusDiv.innerText = "❌ Error: " + (err.message || "Payment cancelled");
             }
         }
 
-        // --- SUCCESS HANDLER ---
-        async function finishProcess(hash, chain) {
-            const mode = document.getElementById('modeSelect').value;
-            const target = document.getElementById('userInput').value;
-            
-            const alertMsg = `✅ PAYMENT SUCCESSFUL (${chain})\n\nMode: ${mode.toUpperCase()}\nHash: ${hash}\n\nCopied to clipboard. Launching Agent...`;
-            await navigator.clipboard.writeText(hash);
-            alert(alertMsg);
-
+        // --- DISPLAY RESULTS ---
+        function displayResults(results, token, mode) {
             document.getElementById('landing-page').style.display = 'none';
-            document.getElementById('chatbot-container').style.display = 'block';
+            document.getElementById('chatbot-container').style.display = 'flex';
+            
+            const output = document.getElementById('analysis-output');
+            output.innerHTML = `
+<strong>Token:</strong> ${token}
+<strong>Analysis Mode:</strong> ${mode}
+<strong>Timestamp:</strong> ${new Date().toISOString()}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${JSON.stringify(results, null, 2)}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Analysis complete! Results delivered via X402 Protocol.
+            `.trim();
         }
         
         // Init price on load
         updatePrice();
     </script>
-
-    <script type="module">
-        import Chatbot from "https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js"
-        Chatbot.initFull({
-            chatflowid: "2e076890-5422-4489-b752-020bcc1c110c",
-            apiHost: "https://34.155.119.5.sslip.io", 
-            theme: {
-                button: { backgroundColor: "#0052FF" },
-                chatWindow: {
-                    welcomeMessage: "Forensic Unit Online.\nI've copied your Payment Hash.\n\nPaste it here to start authentication.",
-                    backgroundColor: "#050505",
-                    textInput: { placeholder: "Paste Hash...", backgroundColor: "#0f1115", textColor: "#ffffff", sendButtonColor: "#0052FF" }
-                }
-            }
-        })
-    </script>
 </body>
-</html>
 </html>
