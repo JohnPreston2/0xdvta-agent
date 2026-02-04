@@ -5,9 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>0xDvta - AI Forensic Analysis</title>
     
-    <!-- FIX: Use working CDN for ethers -->
-    <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <!-- Load Web3 SDKs -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <script src="https://unpkg.com/@solana/web3.js@1.87.6/lib/index.iife.min.js"></script>
+    <script src="https://unpkg.com/@solana/spl-token@0.3.9/lib/index.iife.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -15,21 +16,15 @@
         :root {
             --primary: #8B5CF6;
             --primary-dark: #7C3AED;
-            --primary-light: #A78BFA;
             --bg: #0a0a0f;
             --surface: #13131a;
             --border: #1f1f28;
             --text: #e4e4e7;
             --text-dim: #71717a;
             --success: #10b981;
-            --warning: #f59e0b;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', sans-serif;
@@ -412,17 +407,6 @@
             font-size: 12px;
             color: var(--text-dim);
         }
-
-        .demo-notice {
-            background: rgba(251, 191, 36, 0.1);
-            border: 1px solid rgba(251, 191, 36, 0.3);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 24px;
-            text-align: center;
-            color: #fbbf24;
-            font-size: 13px;
-        }
     </style>
 </head>
 <body>
@@ -432,11 +416,6 @@
             <img src="logo.png" alt="0xDvta" class="logo" onerror="this.src='https://via.placeholder.com/64'">
             <h1>0xDvta</h1>
             <div class="subtitle">AI-Powered Token Forensics</div>
-        </div>
-
-        <!-- Demo Notice -->
-        <div class="demo-notice">
-            ⚠️ DEMO MODE: Payments disabled for testing. Backend forensics active.
         </div>
 
         <!-- Wallet Section -->
@@ -474,7 +453,7 @@
                     <input type="text" id="token-address" placeholder="BANKJmvhT8tiJRsBSS1n2HryMBPvT5Ze4HU95DUAmeta">
                 </div>
 
-                <div class="price-tag">$0.30 (Demo: Free)</div>
+                <div class="price-tag">$0.30 USDC</div>
 
                 <button class="btn-primary" onclick="startScan()">
                     Scan Token
@@ -499,12 +478,35 @@
             </div>
 
             <div class="card">
-                <label>Select Analysis (Optional - Demo Only)</label>
-                <div class="price-tag">Coming Soon</div>
-                <p style="text-align: center; color: var(--text-dim); font-size: 13px;">
-                    AI analysis will be available after payment integration
-                </p>
+                <label>Select Analysis</label>
+                <div class="analysis-grid">
+                    <div class="analysis-option" onclick="toggleAnalysis('onchain')">
+                        <input type="checkbox" id="check-onchain">
+                        <div class="analysis-info">
+                            <div class="analysis-name">OnChain Analysis</div>
+                            <div class="analysis-desc">Liquidity & holder metrics</div>
+                        </div>
+                        <div class="analysis-price">+$0.20</div>
+                    </div>
+
+                    <div class="analysis-option" onclick="toggleAnalysis('complete')">
+                        <input type="checkbox" id="check-complete">
+                        <div class="analysis-info">
+                            <div class="analysis-name">Complete Bundle</div>
+                            <div class="analysis-desc">All analyses included</div>
+                        </div>
+                        <div class="analysis-price">$0.50</div>
+                    </div>
+                </div>
+
+                <div class="price-tag" id="analysis-total">Select options</div>
+
+                <button class="btn-primary" id="analyze-btn" onclick="startAnalysis()" disabled>
+                    Run Analysis
+                </button>
             </div>
+
+            <div class="status" id="analysis-status"></div>
         </div>
 
         <div class="footer">
@@ -513,37 +515,52 @@
     </div>
 
     <script>
-        const API_BASE = "";
+        // === CONFIG ===
+        const USDC_MINT_SOLANA = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+        const USDC_CONTRACT_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+        const RECIPIENT_SOLANA = 'YourSolanaAddressHere'; // TODO: Replace
+        const RECIPIENT_BASE = '0xYourBaseAddressHere'; // TODO: Replace
         
         let currentChain = 'solana';
         let walletAddress = null;
+        let walletProvider = null;
         let scanData = null;
+        let selectedAnalyses = new Set();
 
+        const PRICING = {
+            onchain: 0.20,
+            complete: 0.50
+        };
+
+        // === CHAIN SELECTION ===
         function selectChain(chain) {
             currentChain = chain;
-            document.querySelectorAll('.chain-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
+            document.querySelectorAll('.chain-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
             
             walletAddress = null;
+            walletProvider = null;
             document.getElementById('wallet-address').style.display = 'none';
             document.getElementById('connect-btn').style.display = 'block';
-            document.getElementById('connect-btn').textContent = 'Connect Wallet';
         }
 
+        // === WALLET CONNECTION ===
         async function connectWallet() {
-            const btn = document.getElementById('connect-btn');
-            const addressDiv = document.getElementById('wallet-address');
             const status = document.getElementById('scan-status');
 
             try {
-                if (currentChain === 'base') {
-                    // Check if ethers loaded
-                    if (typeof ethers === 'undefined') {
-                        throw new Error("Please refresh the page - wallet library loading...");
+                if (currentChain === 'solana') {
+                    if (typeof window.solana === 'undefined') {
+                        alert("Please install Phantom Wallet!");
+                        window.open("https://phantom.app/", "_blank");
+                        return;
                     }
 
+                    const resp = await window.solana.connect();
+                    walletAddress = resp.publicKey.toString();
+                    walletProvider = window.solana;
+                    
+                } else {
                     if (typeof window.ethereum === 'undefined') {
                         alert("Please install MetaMask!");
                         window.open("https://metamask.io/download/", "_blank");
@@ -563,21 +580,13 @@
 
                     const signer = provider.getSigner();
                     walletAddress = await signer.getAddress();
-                    
-                } else {
-                    if (typeof window.solana === 'undefined') {
-                        alert("Please install Phantom Wallet!");
-                        window.open("https://phantom.app/", "_blank");
-                        return;
-                    }
-
-                    const resp = await window.solana.connect();
-                    walletAddress = resp.publicKey.toString();
+                    walletProvider = provider;
                 }
 
-                addressDiv.innerHTML = `<div class="wallet-address">${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}</div>`;
-                addressDiv.style.display = 'block';
-                btn.style.display = 'none';
+                document.getElementById('wallet-address').innerHTML = 
+                    `<div class="wallet-address">${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}</div>`;
+                document.getElementById('wallet-address').style.display = 'block';
+                document.getElementById('connect-btn').style.display = 'none';
                 status.textContent = 'Enter token address to scan';
 
             } catch (err) {
@@ -587,6 +596,78 @@
             }
         }
 
+        // === X402 PAYMENT HANDLER ===
+        async function createX402Payment(amountUSD) {
+            if (currentChain === 'solana') {
+                return await createSolanaPayment(amountUSD);
+            } else {
+                return await createBasePayment(amountUSD);
+            }
+        }
+
+        async function createSolanaPayment(amountUSD) {
+            const amountUSDC = Math.floor(amountUSD * 1_000_000); // USDC has 6 decimals
+            
+            const connection = new solanaWeb3.Connection('https://api.mainnet-beta.solana.com');
+            const publicKey = new solanaWeb3.PublicKey(walletAddress);
+            const recipientPubkey = new solanaWeb3.PublicKey(RECIPIENT_SOLANA);
+            const usdcMint = new solanaWeb3.PublicKey(USDC_MINT_SOLANA);
+
+            // Get token accounts
+            const fromTokenAccount = await splToken.Token.getAssociatedTokenAddress(
+                splToken.ASSOCIATED_TOKEN_PROGRAM_ID,
+                splToken.TOKEN_PROGRAM_ID,
+                usdcMint,
+                publicKey
+            );
+
+            const toTokenAccount = await splToken.Token.getAssociatedTokenAddress(
+                splToken.ASSOCIATED_TOKEN_PROGRAM_ID,
+                splToken.TOKEN_PROGRAM_ID,
+                usdcMint,
+                recipientPubkey
+            );
+
+            // Create transfer instruction
+            const transaction = new solanaWeb3.Transaction().add(
+                splToken.Token.createTransferInstruction(
+                    splToken.TOKEN_PROGRAM_ID,
+                    fromTokenAccount,
+                    toTokenAccount,
+                    publicKey,
+                    [],
+                    amountUSDC
+                )
+            );
+
+            transaction.feePayer = publicKey;
+            transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+
+            // Sign and send
+            const signed = await walletProvider.signTransaction(transaction);
+            const signature = await connection.sendRawTransaction(signed.serialize());
+            await connection.confirmTransaction(signature);
+
+            return signature;
+        }
+
+        async function createBasePayment(amountUSD) {
+            const amountUSDC = ethers.utils.parseUnits(amountUSD.toString(), 6);
+            
+            const signer = walletProvider.getSigner();
+            const usdcContract = new ethers.Contract(
+                USDC_CONTRACT_BASE,
+                ['function transfer(address to, uint256 amount) returns (bool)'],
+                signer
+            );
+
+            const tx = await usdcContract.transfer(RECIPIENT_BASE, amountUSDC);
+            const receipt = await tx.wait();
+            
+            return receipt.transactionHash;
+        }
+
+        // === STEP 1: SCAN ===
         async function startScan() {
             const tokenAddress = document.getElementById('token-address').value.trim();
             const status = document.getElementById('scan-status');
@@ -603,27 +684,43 @@
 
             try {
                 status.classList.remove('error');
-                status.textContent = "Scanning token (demo mode - no payment required)";
+                status.textContent = "Initiating scan";
                 status.classList.add('loading');
 
-                // DEMO: Skip payment, go straight to paid call
-                const mockSig = "0xDEMO" + "0".repeat(126);
-                
+                // Try without payment first
                 const response = await fetch(`/api/scan`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'PAYMENT-SIGNATURE': mockSig
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ tokenAddress })
                 });
 
-                if (response.ok) {
+                if (response.status === 402) {
+                    status.textContent = "Payment required - Processing USDC payment";
+                    
+                    // Create real payment
+                    const signature = await createX402Payment(0.30);
+                    
+                    status.textContent = "Payment sent - Waiting for confirmation";
+                    
+                    // Retry with payment signature
+                    const paidResponse = await fetch(`/api/scan`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'PAYMENT-SIGNATURE': signature
+                        },
+                        body: JSON.stringify({ tokenAddress })
+                    });
+
+                    if (paidResponse.ok) {
+                        scanData = await paidResponse.json();
+                        showScanResults(scanData);
+                    } else {
+                        throw new Error("Scan failed after payment");
+                    }
+                } else if (response.ok) {
                     scanData = await response.json();
                     showScanResults(scanData);
-                } else {
-                    const errorText = await response.text();
-                    throw new Error(`Scan failed: ${response.status} - ${errorText}`);
                 }
 
             } catch (err) {
@@ -653,8 +750,102 @@
 
         function downloadJSON() {
             if (!scanData || !scanData.downloadUrl) return;
-            const downloadPath = scanData.downloadUrl.replace('http://34.155.119.5', '');
-            window.open(downloadPath, '_blank');
+            window.open(scanData.downloadUrl.replace('http://34.155.119.5', ''), '_blank');
+        }
+
+        // === STEP 2: ANALYSIS ===
+        function toggleAnalysis(type) {
+            const checkbox = document.getElementById(`check-${type}`);
+            const option = checkbox.parentElement;
+            
+            if (type === 'complete') {
+                selectedAnalyses.clear();
+                document.querySelectorAll('.analysis-option input').forEach(cb => {
+                    cb.checked = false;
+                    cb.parentElement.classList.remove('selected');
+                });
+            } else {
+                document.getElementById('check-complete').checked = false;
+                document.getElementById('check-complete').parentElement.classList.remove('selected');
+                selectedAnalyses.delete('complete');
+            }
+            
+            if (selectedAnalyses.has(type)) {
+                selectedAnalyses.delete(type);
+                checkbox.checked = false;
+                option.classList.remove('selected');
+            } else {
+                selectedAnalyses.add(type);
+                checkbox.checked = true;
+                option.classList.add('selected');
+            }
+            
+            updateAnalysisTotal();
+        }
+
+        function updateAnalysisTotal() {
+            const total = document.getElementById('analysis-total');
+            const btn = document.getElementById('analyze-btn');
+            
+            if (selectedAnalyses.size === 0) {
+                total.textContent = "Select options";
+                btn.disabled = true;
+                return;
+            }
+            
+            let price = 0;
+            selectedAnalyses.forEach(type => {
+                price += PRICING[type];
+            });
+            
+            total.textContent = `$${price.toFixed(2)} USDC`;
+            btn.disabled = false;
+        }
+
+        async function startAnalysis() {
+            if (!scanData || selectedAnalyses.size === 0) return;
+
+            const status = document.getElementById('analysis-status');
+            status.classList.remove('error');
+            status.textContent = "Processing payment";
+            status.classList.add('loading');
+
+            try {
+                let price = 0;
+                selectedAnalyses.forEach(type => { price += PRICING[type]; });
+
+                // Create payment
+                const signature = await createX402Payment(price);
+                
+                status.textContent = "Payment sent - Running analysis";
+
+                const response = await fetch(`/api/analyze`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'PAYMENT-SIGNATURE': signature
+                    },
+                    body: JSON.stringify({
+                        scanId: scanData.scanId,
+                        analysisTypes: Array.from(selectedAnalyses)
+                    })
+                });
+
+                if (response.ok) {
+                    const results = await response.json();
+                    status.textContent = "✓ Analysis complete";
+                    console.log('Analysis results:', results);
+                } else {
+                    throw new Error("Analysis failed");
+                }
+
+            } catch (err) {
+                console.error('Analysis error:', err);
+                status.textContent = `Error: ${err.message}`;
+                status.classList.add('error');
+            } finally {
+                status.classList.remove('loading');
+            }
         }
     </script>
 
