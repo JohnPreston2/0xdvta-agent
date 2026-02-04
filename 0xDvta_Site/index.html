@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>0xDvta - AI Forensic Analysis</title>
     
-    <!-- Load wallet SDKs -->
-    <script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js"></script>
+    <!-- FIX: Use working CDN for ethers -->
+    <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
 
     <style>
@@ -45,7 +45,6 @@
             padding: 40px 20px;
         }
 
-        /* Header */
         .header {
             text-align: center;
             margin-bottom: 48px;
@@ -72,7 +71,6 @@
             font-weight: 400;
         }
 
-        /* Wallet Section */
         .wallet-section {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -155,7 +153,6 @@
             text-align: center;
         }
 
-        /* Steps */
         .steps {
             display: flex;
             gap: 12px;
@@ -209,7 +206,6 @@
             color: var(--text-dim);
         }
 
-        /* Section */
         .section {
             display: none;
         }
@@ -288,7 +284,6 @@
             transform: none;
         }
 
-        /* Analysis Options */
         .analysis-grid {
             display: grid;
             gap: 12px;
@@ -343,7 +338,6 @@
             color: var(--primary);
         }
 
-        /* Results */
         .result-box {
             background: var(--bg);
             border: 1px solid var(--success);
@@ -389,7 +383,6 @@
             transform: translateY(-1px);
         }
 
-        /* Status */
         .status {
             text-align: center;
             padding: 12px;
@@ -413,23 +406,37 @@
             60%, 100% { content: "..."; }
         }
 
-        /* Footer */
         .footer {
             text-align: center;
             padding: 24px 0;
             font-size: 12px;
             color: var(--text-dim);
         }
+
+        .demo-notice {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            text-align: center;
+            color: #fbbf24;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- Header -->
         <div class="header">
             <img src="logo.png" alt="0xDvta" class="logo" onerror="this.src='https://via.placeholder.com/64'">
             <h1>0xDvta</h1>
             <div class="subtitle">AI-Powered Token Forensics</div>
+        </div>
+
+        <!-- Demo Notice -->
+        <div class="demo-notice">
+            ⚠️ DEMO MODE: Payments disabled for testing. Backend forensics active.
         </div>
 
         <!-- Wallet Section -->
@@ -437,8 +444,8 @@
             <div class="wallet-header">
                 <span class="wallet-label">Payment Network</span>
                 <div class="chain-selector">
-                    <button class="chain-btn active" onclick="selectChain('base')">Base</button>
-                    <button class="chain-btn" onclick="selectChain('solana')">Solana</button>
+                    <button class="chain-btn" onclick="selectChain('base')">Base</button>
+                    <button class="chain-btn active" onclick="selectChain('solana')">Solana</button>
                 </div>
             </div>
             <button class="connect-btn" id="connect-btn" onclick="connectWallet()">
@@ -447,7 +454,7 @@
             <div id="wallet-address" style="display: none;"></div>
         </div>
 
-        <!-- Steps Indicator -->
+        <!-- Steps -->
         <div class="steps">
             <div class="step active" id="step-1-indicator">
                 <div class="step-number">1</div>
@@ -464,10 +471,10 @@
             <div class="card">
                 <div class="input-group">
                     <label>Token Address (Solana)</label>
-                    <input type="text" id="token-address" placeholder="Enter token address...">
+                    <input type="text" id="token-address" placeholder="BANKJmvhT8tiJRsBSS1n2HryMBPvT5Ze4HU95DUAmeta">
                 </div>
 
-                <div class="price-tag">$0.30</div>
+                <div class="price-tag">$0.30 (Demo: Free)</div>
 
                 <button class="btn-primary" onclick="startScan()">
                     Scan Token
@@ -492,62 +499,12 @@
             </div>
 
             <div class="card">
-                <label>Select Analysis</label>
-                <div class="analysis-grid">
-                    <div class="analysis-option" onclick="toggleAnalysis('onchain')">
-                        <input type="checkbox" id="check-onchain">
-                        <div class="analysis-info">
-                            <div class="analysis-name">OnChain Analysis</div>
-                            <div class="analysis-desc">Liquidity & holder metrics</div>
-                        </div>
-                        <div class="analysis-price">+$0.20</div>
-                    </div>
-
-                    <div class="analysis-option" onclick="toggleAnalysis('technical')">
-                        <input type="checkbox" id="check-technical">
-                        <div class="analysis-info">
-                            <div class="analysis-name">Technical Audit</div>
-                            <div class="analysis-desc">Security vulnerabilities</div>
-                        </div>
-                        <div class="analysis-price">+$0.20</div>
-                    </div>
-
-                    <div class="analysis-option" onclick="toggleAnalysis('flow')">
-                        <input type="checkbox" id="check-flow">
-                        <div class="analysis-info">
-                            <div class="analysis-name">Flow Analysis</div>
-                            <div class="analysis-desc">Money trail tracking</div>
-                        </div>
-                        <div class="analysis-price">+$0.15</div>
-                    </div>
-
-                    <div class="analysis-option" onclick="toggleAnalysis('sniper')">
-                        <input type="checkbox" id="check-sniper">
-                        <div class="analysis-info">
-                            <div class="analysis-name">Sniper Detection</div>
-                            <div class="analysis-desc">Bot activity analysis</div>
-                        </div>
-                        <div class="analysis-price">+$0.10</div>
-                    </div>
-
-                    <div class="analysis-option" onclick="selectComplete()">
-                        <input type="checkbox" id="check-complete">
-                        <div class="analysis-info">
-                            <div class="analysis-name">Complete Bundle</div>
-                            <div class="analysis-desc">All analyses included</div>
-                        </div>
-                        <div class="analysis-price">$0.50</div>
-                    </div>
-                </div>
-
-                <div class="price-tag" id="analysis-total">Select options</div>
-
-                <button class="btn-primary" id="analyze-btn" onclick="startAnalysis()" disabled>
-                    Run Analysis
-                </button>
+                <label>Select Analysis (Optional - Demo Only)</label>
+                <div class="price-tag">Coming Soon</div>
+                <p style="text-align: center; color: var(--text-dim); font-size: 13px;">
+                    AI analysis will be available after payment integration
+                </p>
             </div>
-
-            <div class="status" id="analysis-status"></div>
         </div>
 
         <div class="footer">
@@ -556,24 +513,12 @@
     </div>
 
     <script>
-        // === CONFIGURATION ===
-        // Use relative URLs to leverage Netlify proxy
-        const API_BASE = "";  // Empty = same origin = Netlify proxy
+        const API_BASE = "";
         
-        let currentChain = 'base';
+        let currentChain = 'solana';
         let walletAddress = null;
         let scanData = null;
-        let selectedAnalyses = new Set();
 
-        const PRICING = {
-            onchain: 0.20,
-            technical: 0.20,
-            flow: 0.15,
-            sniper: 0.10,
-            complete: 0.50
-        };
-
-        // === CHAIN SELECTION ===
         function selectChain(chain) {
             currentChain = chain;
             document.querySelectorAll('.chain-btn').forEach(btn => {
@@ -581,14 +526,12 @@
             });
             event.target.classList.add('active');
             
-            // Reset wallet
             walletAddress = null;
             document.getElementById('wallet-address').style.display = 'none';
             document.getElementById('connect-btn').style.display = 'block';
             document.getElementById('connect-btn').textContent = 'Connect Wallet';
         }
 
-        // === WALLET CONNECTION ===
         async function connectWallet() {
             const btn = document.getElementById('connect-btn');
             const addressDiv = document.getElementById('wallet-address');
@@ -596,8 +539,9 @@
 
             try {
                 if (currentChain === 'base') {
+                    // Check if ethers loaded
                     if (typeof ethers === 'undefined') {
-                        throw new Error("Ethers.js not loaded. Please refresh the page.");
+                        throw new Error("Please refresh the page - wallet library loading...");
                     }
 
                     if (typeof window.ethereum === 'undefined') {
@@ -643,7 +587,6 @@
             }
         }
 
-        // === STEP 1: SCAN ===
         async function startScan() {
             const tokenAddress = document.getElementById('token-address').value.trim();
             const status = document.getElementById('scan-status');
@@ -660,41 +603,27 @@
 
             try {
                 status.classList.remove('error');
-                status.textContent = "Initiating scan";
+                status.textContent = "Scanning token (demo mode - no payment required)";
                 status.classList.add('loading');
 
-                // Use Netlify proxy (relative URL)
+                // DEMO: Skip payment, go straight to paid call
+                const mockSig = "0xDEMO" + "0".repeat(126);
+                
                 const response = await fetch(`/api/scan`, {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json'
+                        'PAYMENT-SIGNATURE': mockSig
                     },
                     body: JSON.stringify({ tokenAddress })
                 });
 
-                if (response.status === 402) {
-                    status.textContent = "Payment required - Processing";
-                    
-                    // Mock payment signature for now
-                    const mockSig = "0x" + "0".repeat(130);
-                    
-                    const paidResponse = await fetch(`/api/scan`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            'PAYMENT-SIGNATURE': mockSig
-                        },
-                        body: JSON.stringify({ tokenAddress })
-                    });
-
-                    if (paidResponse.ok) {
-                        scanData = await paidResponse.json();
-                        showScanResults(scanData);
-                    } else {
-                        throw new Error("Scan failed");
-                    }
+                if (response.ok) {
+                    scanData = await response.json();
+                    showScanResults(scanData);
+                } else {
+                    const errorText = await response.text();
+                    throw new Error(`Scan failed: ${response.status} - ${errorText}`);
                 }
 
             } catch (err) {
@@ -715,123 +644,17 @@
 
             const info = `
                 Token: ${data.tokenAddress.slice(0, 8)}...${data.tokenAddress.slice(-6)}<br>
-                Holders: ${data.summary.holders}<br>
-                Liquidity: $${parseFloat(data.summary.liquidity).toLocaleString()}
+                Scan ID: ${data.scanId}<br>
+                Liquidity: $${parseFloat(data.summary.liquidity || 0).toLocaleString()}<br>
+                API Calls: ${data.summary.totalApiCalls || 11}
             `;
             document.getElementById('scan-info').innerHTML = info;
         }
 
         function downloadJSON() {
             if (!scanData || !scanData.downloadUrl) return;
-            // Use relative URL for download too
             const downloadPath = scanData.downloadUrl.replace('http://34.155.119.5', '');
             window.open(downloadPath, '_blank');
-        }
-
-        // === STEP 2: ANALYSIS ===
-        function toggleAnalysis(type) {
-            const checkbox = document.getElementById(`check-${type}`);
-            const option = checkbox.parentElement;
-            
-            if (type === 'complete') {
-                selectedAnalyses.clear();
-                document.querySelectorAll('.analysis-option input').forEach(cb => {
-                    cb.checked = false;
-                    cb.parentElement.classList.remove('selected');
-                });
-            } else {
-                document.getElementById('check-complete').checked = false;
-                document.getElementById('check-complete').parentElement.classList.remove('selected');
-                selectedAnalyses.delete('complete');
-            }
-            
-            if (selectedAnalyses.has(type)) {
-                selectedAnalyses.delete(type);
-                checkbox.checked = false;
-                option.classList.remove('selected');
-            } else {
-                selectedAnalyses.add(type);
-                checkbox.checked = true;
-                option.classList.add('selected');
-            }
-            
-            updateAnalysisTotal();
-        }
-
-        function selectComplete() {
-            toggleAnalysis('complete');
-        }
-
-        function updateAnalysisTotal() {
-            const total = document.getElementById('analysis-total');
-            const btn = document.getElementById('analyze-btn');
-            
-            if (selectedAnalyses.size === 0) {
-                total.textContent = "Select options";
-                btn.disabled = true;
-                return;
-            }
-            
-            let price = 0;
-            selectedAnalyses.forEach(type => {
-                price += PRICING[type];
-            });
-            
-            total.textContent = `$${price.toFixed(2)}`;
-            btn.disabled = false;
-        }
-
-        async function startAnalysis() {
-            if (!scanData || selectedAnalyses.size === 0) return;
-
-            const status = document.getElementById('analysis-status');
-            status.classList.remove('error');
-            status.textContent = "Processing AI analysis";
-            status.classList.add('loading');
-
-            try {
-                const response = await fetch(`/api/analyze`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        scanId: scanData.scanId,
-                        analysisTypes: Array.from(selectedAnalyses)
-                    })
-                });
-
-                if (response.status === 402) {
-                    const mockSig = "0x" + "0".repeat(130);
-                    
-                    const paidResponse = await fetch(`/api/analyze`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            'PAYMENT-SIGNATURE': mockSig
-                        },
-                        body: JSON.stringify({
-                            scanId: scanData.scanId,
-                            analysisTypes: Array.from(selectedAnalyses)
-                        })
-                    });
-
-                    if (paidResponse.ok) {
-                        const results = await paidResponse.json();
-                        status.textContent = "✓ Analysis complete";
-                        status.classList.remove('loading');
-                        console.log('Analysis results:', results);
-                    }
-                }
-
-            } catch (err) {
-                console.error('Analysis error:', err);
-                status.textContent = `Error: ${err.message}`;
-                status.classList.add('error');
-                status.classList.remove('loading');
-            }
         }
     </script>
 
