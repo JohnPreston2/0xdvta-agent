@@ -13,17 +13,9 @@
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type, PAYMENT-SIGNATURE, PAYMENT-RESPONSE"
 
-[[headers]]
-  for = "/.netlify/functions/*"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, PAYMENT-SIGNATURE, PAYMENT-RESPONSE"
-
 [build]
   publish = "."
   command = "echo 'Static build ready'"
-  functions = "netlify/functions"
 
 [[redirects]]
   from = "/.well-known/x402"
@@ -37,8 +29,15 @@
   status = 200
   force = true
 
+# Proxy vers le VPS pour éviter Mixed Content
 [[redirects]]
-  from = "/api/analyze"
-  to = "/.netlify/functions/analyze"
+  from = "/api/*"
+  to = "http://34.155.119.5/api/:splat"
   status = 200
-  force = false
+  force = true
+
+[[redirects]]
+  from = "/download/*"
+  to = "http://34.155.119.5/download/:splat"
+  status = 200
+  force = true
