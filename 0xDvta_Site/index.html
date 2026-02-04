@@ -561,23 +561,48 @@
                     walletProvider = window.solana;
                     
                 } else {
+                    // === BASE CHAIN CONNECTION (FIXED) ===
                     if (typeof window.ethereum === 'undefined') {
                         alert("Please install MetaMask!");
                         window.open("https://metamask.io/download/", "_blank");
                         return;
                     }
 
-                    const provider = new ethers.providers.Web3Provider(window.ethereum);
-                    await provider.send("eth_requestAccounts", []);
-                    
-                    const network = await provider.getNetwork();
-                    if (network.chainId !== 8453) {
+                    // 1. FIRST switch to Base chain BEFORE creating provider
+                    try {
                         await window.ethereum.request({
                             method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: '0x2105' }],
+                            params: [{ chainId: '0x2105' }], // 8453 in hex
                         });
+                    } catch (switchError) {
+                        // If Base is not added to wallet, add it
+                        if (switchError.code === 4902) {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: '0x2105',
+                                    chainName: 'Base',
+                                    nativeCurrency: {
+                                        name: 'Ethereum',
+                                        symbol: 'ETH',
+                                        decimals: 18
+                                    },
+                                    rpcUrls: ['https://mainnet.base.org'],
+                                    blockExplorerUrls: ['https://basescan.org']
+                                }]
+                            });
+                        } else {
+                            throw switchError;
+                        }
                     }
 
+                    // 2. NOW create provider with explicit Base network config
+                    const provider = new ethers.providers.Web3Provider(window.ethereum, {
+                        name: 'base',
+                        chainId: 8453
+                    });
+                    
+                    await provider.send("eth_requestAccounts", []);
                     const signer = provider.getSigner();
                     walletAddress = await signer.getAddress();
                     walletProvider = provider;
