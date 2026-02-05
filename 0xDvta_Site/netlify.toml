@@ -5,7 +5,16 @@
 [functions]
   node_bundler = "esbuild"
 
+# Règle pour le scan (Port 3000) - C'est celle qui corrige votre erreur actuelle
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  to = "http://34.155.119.5:3000/api/:splat"
   status = 200
+  force = true
+
+# Règle pour Flowise (Port 3001) - Pour éviter les erreurs futures sur le chat
+[[redirects]]
+  from = "/flowise/*"
+  to = "http://34.155.119.5:3001/:splat"
+  status = 200
+  force = true
