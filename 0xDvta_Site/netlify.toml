@@ -1,43 +1,11 @@
-[[headers]]
-  for = "/.well-known/x402.json"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, PAYMENT-SIGNATURE, PAYMENT-RESPONSE"
-    Content-Type = "application/json"
-
-[[headers]]
-  for = "/api/*"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, PAYMENT-SIGNATURE, PAYMENT-RESPONSE"
-
 [build]
+  functions = "netlify/functions"
   publish = "."
-  command = "echo 'Static build ready'"
 
-[[redirects]]
-  from = "/.well-known/x402"
-  to = "/well-known-x402.json"
-  status = 200
-  force = true
+[functions]
+  node_bundler = "esbuild"
 
-[[redirects]]
-  from = "/.well-known/x402.json"
-  to = "/well-known-x402.json"
-  status = 200
-  force = true
-
-# Proxy vers le VPS pour éviter Mixed Content
 [[redirects]]
   from = "/api/*"
-  to = "http://34.155.119.5/api/:splat"
+  to = "/.netlify/functions/:splat"
   status = 200
-  force = true
-
-[[redirects]]
-  from = "/download/*"
-  to = "http://34.155.119.5/download/:splat"
-  status = 200
-  force = true
