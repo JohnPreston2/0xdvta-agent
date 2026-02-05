@@ -8,10 +8,6 @@
     <!-- Load Web3 SDKs -->
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <script src="https://unpkg.com/@solana/web3.js@1.87.6/lib/index.iife.min.js"></script>
-    
-    <!-- WALLET ADAPTERS pour Solana -->
-    <script src="https://unpkg.com/@solana/wallet-adapter-base@0.9.23/lib/index.iife.js"></script>
-    <script src="https://unpkg.com/@solana/wallet-adapter-phantom@0.9.24/lib/index.iife.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -25,6 +21,7 @@
             --text: #e4e4e7;
             --text-dim: #71717a;
             --success: #10b981;
+            --error: #ef4444;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -38,12 +35,12 @@
         }
 
         .container {
-            max-width: 680px;
+            max-width: 800px;
             margin: 0 auto;
             padding: 40px 20px;
         }
 
-.header {
+        .header {
             text-align: center;
             margin-bottom: 48px;
         }
@@ -61,6 +58,7 @@
             height: 120px;
             border-radius: 50%;
             box-shadow: 0 0 40px rgba(139, 92, 246, 0.4);
+            object-fit: cover;
         }
 
         h1 {
@@ -212,6 +210,11 @@
             color: white;
         }
 
+        .step.completed .step-number {
+            background: var(--success);
+            color: white;
+        }
+
         .step.completed .step-number::before {
             content: "✓";
         }
@@ -330,7 +333,11 @@
         }
 
         .status.error {
-            color: #ef4444;
+            color: var(--error);
+        }
+
+        .status.success {
+            color: var(--success);
         }
 
         @keyframes dots {
@@ -415,6 +422,146 @@
             color: var(--primary);
         }
 
+        .scan-result {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        /* Chat Interface */
+        .chat-container {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+
+        .chat-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-header-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .chat-header-info h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .chat-header-info span {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .message.agent {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            align-self: flex-start;
+        }
+
+        .message.user {
+            background: var(--primary);
+            color: white;
+            align-self: flex-end;
+        }
+
+        .message.loading {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            align-self: flex-start;
+        }
+
+        .message.loading::after {
+            content: '●●●';
+            animation: messageDots 1.5s infinite;
+        }
+
+        @keyframes messageDots {
+            0%, 20% { opacity: 0.3; }
+            50% { opacity: 1; }
+            80%, 100% { opacity: 0.3; }
+        }
+
+        .chat-input-container {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .chat-send-btn {
+            padding: 12px 20px;
+            background: var(--primary);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chat-send-btn:hover:not(:disabled) {
+            background: var(--primary-dark);
+        }
+
+        .chat-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .footer {
             text-align: center;
             margin-top: 48px;
@@ -426,15 +573,6 @@
             font-size: 12px;
             color: var(--text-dim);
         }
-
-        .scan-result {
-            background: var(--bg);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-            font-size: 13px;
-            line-height: 1.6;
-        }
     </style>
 </head>
 <body>
@@ -444,9 +582,9 @@
                 <img src="logo.png" alt="0xDvta Logo" class="logo">
                 <h1>0xDvta</h1>
             </div>
-            <div class="subtitle">AI OnChain Analyze</div>
+            <div class="subtitle">AI OnChain Forensic Analysis</div>
             <div class="description">
-                Scan any token on Solana, get raw JSON with deep on-chain data, and let 0xDvta interpret these data for you.
+                Scan any Solana token, get raw forensic JSON data, and chat with our AI agent for deep analysis.
             </div>
         </div>
 
@@ -473,6 +611,10 @@
                 <div class="step-number">2</div>
                 <div class="step-label">Analyze</div>
             </div>
+            <div class="step" id="step-3-indicator">
+                <div class="step-number">3</div>
+                <div class="step-label">Chat</div>
+            </div>
         </div>
 
         <!-- Step 1: Scan -->
@@ -493,7 +635,7 @@
             <div class="card">
                 <h3 style="margin-bottom: 16px; font-size: 16px;">✓ Scan Complete</h3>
                 <div class="scan-result" id="scan-info"></div>
-                <button class="btn-secondary" onclick="downloadJSON()">Download</button>
+                <button class="btn-secondary" onclick="downloadJSON()">📥 Download JSON</button>
             </div>
 
             <div class="card">
@@ -528,6 +670,34 @@
             </div>
         </div>
 
+        <!-- Step 3: Chat -->
+        <div class="section" id="step-3">
+            <div class="card">
+                <h3 style="margin-bottom: 8px; font-size: 16px;">✓ Analysis Complete</h3>
+                <p style="font-size: 13px; color: var(--text-dim); margin-bottom: 16px;">
+                    Chat with 0xDvta agent to explore the analysis further.
+                </p>
+                <button class="btn-secondary" onclick="downloadJSON()">📥 Download JSON</button>
+            </div>
+
+            <div class="chat-container">
+                <div class="chat-header">
+                    <div class="chat-header-icon">🤖</div>
+                    <div class="chat-header-info">
+                        <h3>0xDvta Agent</h3>
+                        <span>AI Forensic Analyst</span>
+                    </div>
+                </div>
+                <div class="chat-messages" id="chat-messages">
+                    <!-- Messages will be added here -->
+                </div>
+                <div class="chat-input-container">
+                    <textarea class="chat-input" id="chat-input" placeholder="Ask a question about the token..." rows="1" onkeypress="handleChatKeypress(event)"></textarea>
+                    <button class="chat-send-btn" id="chat-send-btn" onclick="sendChatMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+
         <div class="footer">
             <p class="footer-text">Powered by X402 Protocol • Base & Solana</p>
         </div>
@@ -535,6 +705,8 @@
 
     <script>
         // === CONFIGURATION ===
+        const VPS_URL = 'http://34.155.119.5:3000';
+        
         const USDC_MINT_SOLANA = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
         const USDC_CONTRACT_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
         const RECIPIENT_SOLANA = 'nzEeqCR7ZnjoZU31fgUoLfP7FEMqj968zN4UBSQyXLP';
@@ -556,6 +728,7 @@
         let solanaWalletAdapter = null;
         let scanData = null;
         let selectedAnalyses = new Set();
+        let chatSessionId = null;
 
         // === CHAIN SELECTION ===
         function selectChain(chain) {
@@ -566,7 +739,6 @@
             });
             document.getElementById(`btn-${chain}`).classList.add('active');
             
-            // Reset wallet
             walletAddress = null;
             walletProvider = null;
             solanaWalletAdapter = null;
@@ -601,16 +773,13 @@
             }
         }
 
-        // === BASE WALLET (CORRIGÉ) ===
         async function connectBaseWallet() {
             if (typeof window.ethereum === 'undefined') {
                 throw new Error("Please install MetaMask or Coinbase Wallet");
             }
             
-            // Initialiser le provider
             walletProvider = new ethers.providers.Web3Provider(window.ethereum);
             
-            // Demander la connexion
             const accounts = await window.ethereum.request({ 
                 method: 'eth_requestAccounts' 
             });
@@ -621,31 +790,24 @@
             
             walletAddress = accounts[0];
             
-            // Vérifier/Switch vers Base
             const currentChainId = await window.ethereum.request({ 
                 method: 'eth_chainId' 
             });
             
             if (parseInt(currentChainId, 16) !== BASE_CHAIN_ID) {
                 try {
-                    // Essayer de switch vers Base
                     await window.ethereum.request({
                         method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: '0x2105' }], // 8453 en hex
+                        params: [{ chainId: '0x2105' }],
                     });
                 } catch (switchError) {
-                    // Si Base n'est pas dans le wallet, l'ajouter
                     if (switchError.code === 4902) {
                         await window.ethereum.request({
                             method: 'wallet_addEthereumChain',
                             params: [{
                                 chainId: '0x2105',
                                 chainName: 'Base',
-                                nativeCurrency: {
-                                    name: 'Ethereum',
-                                    symbol: 'ETH',
-                                    decimals: 18
-                                },
+                                nativeCurrency: { name: 'Ethereum', symbol: 'ETH', decimals: 18 },
                                 rpcUrls: [BASE_RPC],
                                 blockExplorerUrls: ['https://basescan.org']
                             }]
@@ -656,34 +818,21 @@
                 }
             }
             
-            // Refresh provider après le switch
             walletProvider = new ethers.providers.Web3Provider(window.ethereum);
         }
 
-        // === SOLANA WALLET (CORRIGÉ) ===
         async function connectSolanaWallet() {
-            // Vérifier Phantom
             if (!window.solana || !window.solana.isPhantom) {
                 throw new Error("Please install Phantom wallet");
             }
             
-            try {
-                // Connecter Phantom
-                const response = await window.solana.connect();
-                walletAddress = response.publicKey.toString();
-                solanaWalletAdapter = window.solana;
-                
-                console.log('Phantom connected:', walletAddress);
-            } catch (err) {
-                if (err.code === 4001) {
-                    throw new Error("Connection rejected by user");
-                }
-                throw err;
-            }
+            const response = await window.solana.connect();
+            walletAddress = response.publicKey.toString();
+            solanaWalletAdapter = window.solana;
         }
 
-        // === PAIEMENT X402 (CORRIGÉ) ===
-        async function createX402Payment(amountUSD) {
+        // === PAYMENT ===
+        async function createPayment(amountUSD) {
             if (!walletAddress) {
                 throw new Error("Wallet not connected");
             }
@@ -697,85 +846,6 @@
             }
         }
 
-        // === SOLANA PAYMENT (VERSION SIMPLIFIÉE) ===
-        async function createSolanaPayment(amountUSD) {
-            if (!solanaWalletAdapter) {
-                throw new Error("Solana wallet not connected");
-            }
-
-            const amountLamports = Math.floor(amountUSD * 1_000_000); // USDC = 6 decimals
-            
-            // Créer la connection
-            const connection = new solanaWeb3.Connection(
-                'https://api.mainnet-beta.solana.com',
-                'confirmed'
-            );
-            
-            const fromPubkey = new solanaWeb3.PublicKey(walletAddress);
-            const toPubkey = new solanaWeb3.PublicKey(RECIPIENT_SOLANA);
-            const usdcMint = new solanaWeb3.PublicKey(USDC_MINT_SOLANA);
-
-            // SOLUTION: Utiliser les fonctions modernes de @solana/spl-token
-            // Pour simplifier, on utilise une transfer instruction basique
-            // Tu devras installer @solana/spl-token correctement pour utiliser getOrCreateAssociatedTokenAccount
-            
-            // Version simplifiée: Transfer direct (nécessite que les ATA existent)
-            const TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
-            
-            // Calculer les Associated Token Accounts
-            const getAssociatedTokenAddress = (mint, owner) => {
-                const [address] = solanaWeb3.PublicKey.findProgramAddressSync(
-                    [
-                        owner.toBuffer(),
-                        TOKEN_PROGRAM_ID.toBuffer(),
-                        mint.toBuffer(),
-                    ],
-                    new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL')
-                );
-                return address;
-            };
-
-            const fromTokenAccount = getAssociatedTokenAddress(usdcMint, fromPubkey);
-            const toTokenAccount = getAssociatedTokenAddress(usdcMint, toPubkey);
-
-            // Créer l'instruction de transfer
-            const transferInstruction = new solanaWeb3.TransactionInstruction({
-                keys: [
-                    { pubkey: fromTokenAccount, isSigner: false, isWritable: true },
-                    { pubkey: toTokenAccount, isSigner: false, isWritable: true },
-                    { pubkey: fromPubkey, isSigner: true, isWritable: false },
-                ],
-                programId: TOKEN_PROGRAM_ID,
-                data: Buffer.from([
-                    3, // Transfer instruction
-                    ...new Uint8Array(new BigUint64Array([BigInt(amountLamports)]).buffer)
-                ])
-            });
-
-            // Créer la transaction
-            const transaction = new solanaWeb3.Transaction();
-            transaction.add(transferInstruction);
-            
-            // Récupérer le blockhash récent
-            const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-            transaction.recentBlockhash = blockhash;
-            transaction.feePayer = fromPubkey;
-
-            // Signer et envoyer avec Phantom
-            const signed = await solanaWalletAdapter.signAndSendTransaction(transaction);
-            
-            // Attendre la confirmation
-            await connection.confirmTransaction({
-                signature: signed.signature,
-                blockhash: blockhash,
-                lastValidBlockHeight: lastValidBlockHeight
-            });
-
-            console.log('Solana payment signature:', signed.signature);
-            return signed.signature;
-        }
-
-        // === BASE PAYMENT (CORRIGÉ) ===
         async function createBasePayment(amountUSD) {
             if (!walletProvider) {
                 throw new Error("Base wallet not connected");
@@ -793,21 +863,77 @@
                 signer
             );
 
-            // Vérifier le balance
             const balance = await usdcContract.balanceOf(walletAddress);
             if (balance.lt(amountUSDC)) {
                 throw new Error(`Insufficient USDC balance. You have ${ethers.utils.formatUnits(balance, 6)} USDC`);
             }
 
-            // Envoyer la transaction
             const tx = await usdcContract.transfer(RECIPIENT_BASE, amountUSDC);
             console.log('Transaction sent:', tx.hash);
             
-            // Attendre la confirmation
             const receipt = await tx.wait();
             console.log('Transaction confirmed:', receipt.transactionHash);
             
             return receipt.transactionHash;
+        }
+
+        async function createSolanaPayment(amountUSD) {
+            if (!solanaWalletAdapter) {
+                throw new Error("Solana wallet not connected");
+            }
+
+            const amountLamports = Math.floor(amountUSD * 1_000_000);
+            
+            const connection = new solanaWeb3.Connection(
+                'https://api.mainnet-beta.solana.com',
+                'confirmed'
+            );
+            
+            const fromPubkey = new solanaWeb3.PublicKey(walletAddress);
+            const toPubkey = new solanaWeb3.PublicKey(RECIPIENT_SOLANA);
+            const usdcMint = new solanaWeb3.PublicKey(USDC_MINT_SOLANA);
+            const TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+            
+            const getAssociatedTokenAddress = (mint, owner) => {
+                const [address] = solanaWeb3.PublicKey.findProgramAddressSync(
+                    [owner.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+                    new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL')
+                );
+                return address;
+            };
+
+            const fromTokenAccount = getAssociatedTokenAddress(usdcMint, fromPubkey);
+            const toTokenAccount = getAssociatedTokenAddress(usdcMint, toPubkey);
+
+            const transferInstruction = new solanaWeb3.TransactionInstruction({
+                keys: [
+                    { pubkey: fromTokenAccount, isSigner: false, isWritable: true },
+                    { pubkey: toTokenAccount, isSigner: false, isWritable: true },
+                    { pubkey: fromPubkey, isSigner: true, isWritable: false },
+                ],
+                programId: TOKEN_PROGRAM_ID,
+                data: Buffer.from([
+                    3,
+                    ...new Uint8Array(new BigUint64Array([BigInt(amountLamports)]).buffer)
+                ])
+            });
+
+            const transaction = new solanaWeb3.Transaction();
+            transaction.add(transferInstruction);
+            
+            const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+            transaction.recentBlockhash = blockhash;
+            transaction.feePayer = fromPubkey;
+
+            const signed = await solanaWalletAdapter.signAndSendTransaction(transaction);
+            
+            await connection.confirmTransaction({
+                signature: signed.signature,
+                blockhash: blockhash,
+                lastValidBlockHeight: lastValidBlockHeight
+            });
+
+            return signed.signature;
         }
 
         // === STEP 1: SCAN ===
@@ -826,55 +952,36 @@
             }
 
             try {
-                status.classList.remove('error');
-                status.textContent = "Initiating scan";
-                status.classList.add('loading');
+                status.className = 'status loading';
+                status.textContent = 'Processing payment';
 
-                // Essayer sans paiement d'abord
-                const response = await fetch(`/api/scan`, {
+                // Create payment
+                const signature = await createPayment(PRICING.scan);
+                
+                status.textContent = 'Payment confirmed - Scanning token';
+
+                // Call VPS scan endpoint
+                const response = await fetch(`${VPS_URL}/api/scan`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'PAYMENT-SIGNATURE': signature
+                    },
                     body: JSON.stringify({ tokenAddress })
                 });
 
-                if (response.status === 402) {
-                    status.textContent = "Processing USDC payment";
-                    
-                    // Créer le paiement
-                    const signature = await createX402Payment(PRICING.scan);
-                    
-                    status.textContent = "Payment sent - Waiting for confirmation";
-                    
-                    // Retry avec la signature
-                    const paidResponse = await fetch(`/api/scan`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-PAYMENT-SIGNATURE': signature,
-                            'X-PAYMENT-CHAIN': selectedChain
-                        },
-                        body: JSON.stringify({ tokenAddress })
-                    });
-
-                    if (paidResponse.ok) {
-                        scanData = await paidResponse.json();
-                        showScanResults(scanData);
-                    } else {
-                        throw new Error("Scan failed after payment");
-                    }
-                } else if (response.ok) {
+                if (response.ok) {
                     scanData = await response.json();
                     showScanResults(scanData);
                 } else {
-                    throw new Error(`Scan failed: ${response.statusText}`);
+                    const error = await response.json();
+                    throw new Error(error.message || 'Scan failed');
                 }
 
             } catch (err) {
                 console.error('Scan error:', err);
                 status.textContent = `Error: ${err.message}`;
-                status.classList.add('error');
-            } finally {
-                status.classList.remove('loading');
+                status.className = 'status error';
             }
         }
 
@@ -886,16 +993,21 @@
             document.getElementById('step-2-indicator').classList.add('active');
 
             const info = `
-                Token: ${data.tokenAddress.slice(0, 8)}...${data.tokenAddress.slice(-6)}<br>
-                Scan ID: ${data.scanId}<br>
-                Liquidity: $${parseFloat(data.summary.liquidity || 0).toLocaleString()}<br>
-                API Calls: ${data.summary.totalApiCalls || 11}
+                <strong>Token:</strong> ${data.tokenAddress.slice(0, 8)}...${data.tokenAddress.slice(-6)}<br>
+                <strong>Scan ID:</strong> ${data.scanId.slice(0, 16)}...<br>
+                <strong>Liquidity:</strong> $${parseFloat(data.summary?.liquidity || 0).toLocaleString()}<br>
+                <strong>Holders:</strong> ${data.summary?.holders || 'N/A'}<br>
+                <strong>API Calls:</strong> ${data.summary?.totalApiCalls || 11}
+                ${data.summary?.warnings?.length ? '<br><strong style="color: var(--error);">⚠️ Warnings:</strong> ' + data.summary.warnings.join(', ') : ''}
             `;
             document.getElementById('scan-info').innerHTML = info;
         }
 
         function downloadJSON() {
-            if (!scanData || !scanData.downloadUrl) return;
+            if (!scanData || !scanData.downloadUrl) {
+                alert('No scan data available');
+                return;
+            }
             window.open(scanData.downloadUrl, '_blank');
         }
 
@@ -952,25 +1064,22 @@
             if (!scanData || selectedAnalyses.size === 0) return;
 
             const status = document.getElementById('analysis-status');
-            status.classList.remove('error');
-            status.textContent = "Processing payment";
-            status.classList.add('loading');
+            status.className = 'status loading';
+            status.textContent = 'Processing payment';
 
             try {
                 let price = 0;
                 selectedAnalyses.forEach(type => { price += PRICING[type]; });
 
-                // Créer le paiement
-                const signature = await createX402Payment(price);
+                const signature = await createPayment(price);
                 
-                status.textContent = "Payment sent - Running analysis";
+                status.textContent = 'Payment confirmed - Running AI analysis';
 
-                const response = await fetch(`/api/analyze`, {
+                const response = await fetch(`${VPS_URL}/api/analyze`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-PAYMENT-SIGNATURE': signature,
-                        'X-PAYMENT-CHAIN': selectedChain
+                        'PAYMENT-SIGNATURE': signature
                     },
                     body: JSON.stringify({
                         scanId: scanData.scanId,
@@ -980,21 +1089,115 @@
 
                 if (response.ok) {
                     const results = await response.json();
-                    status.textContent = "✓ Analysis complete";
                     console.log('Analysis results:', results);
+                    
+                    // Store session ID for chat
+                    chatSessionId = results.sessionId || results.chatId;
+                    
+                    // Show chat interface
+                    showChatInterface(results);
                 } else {
-                    throw new Error("Analysis failed");
+                    const error = await response.json();
+                    throw new Error(error.message || 'Analysis failed');
                 }
 
             } catch (err) {
                 console.error('Analysis error:', err);
                 status.textContent = `Error: ${err.message}`;
-                status.classList.add('error');
+                status.className = 'status error';
+            }
+        }
+
+        // === STEP 3: CHAT ===
+        function showChatInterface(analysisResults) {
+            document.getElementById('step-2').classList.remove('active');
+            document.getElementById('step-3').classList.add('active');
+            document.getElementById('step-2-indicator').classList.remove('active');
+            document.getElementById('step-2-indicator').classList.add('completed');
+            document.getElementById('step-3-indicator').classList.add('active');
+
+            // Add initial analysis message
+            addChatMessage(analysisResults.analysis, 'agent');
+        }
+
+        function addChatMessage(text, sender) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            messageDiv.textContent = text;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function addLoadingMessage() {
+            const messagesContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message loading';
+            messageDiv.id = 'loading-message';
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function removeLoadingMessage() {
+            const loadingMsg = document.getElementById('loading-message');
+            if (loadingMsg) loadingMsg.remove();
+        }
+
+        function handleChatKeypress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendChatMessage();
+            }
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const sendBtn = document.getElementById('chat-send-btn');
+            const message = input.value.trim();
+            
+            if (!message || !chatSessionId) return;
+            
+            // Add user message
+            addChatMessage(message, 'user');
+            input.value = '';
+            
+            // Disable input while processing
+            input.disabled = true;
+            sendBtn.disabled = true;
+            addLoadingMessage();
+
+            try {
+                const response = await fetch(`${VPS_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sessionId: chatSessionId,
+                        message: message,
+                        scanId: scanData.scanId
+                    })
+                });
+
+                removeLoadingMessage();
+
+                if (response.ok) {
+                    const result = await response.json();
+                    addChatMessage(result.response, 'agent');
+                } else {
+                    const error = await response.json();
+                    addChatMessage(`Error: ${error.message}`, 'agent');
+                }
+
+            } catch (err) {
+                removeLoadingMessage();
+                addChatMessage(`Error: ${err.message}`, 'agent');
             } finally {
-                status.classList.remove('loading');
+                input.disabled = false;
+                sendBtn.disabled = false;
+                input.focus();
             }
         }
     </script>
-
 </body>
 </html>
