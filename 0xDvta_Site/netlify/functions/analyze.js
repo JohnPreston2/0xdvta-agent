@@ -1,189 +1,167 @@
 // netlify/functions/analyze.js
-// Cette fonction retourne une vraie réponse HTTP 402 pour X402scan
+const { ethers } = require('ethers');
+
+const USDC_CONTRACT_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+const RECIPIENT_BASE = '0x71fd4359eB2da83C1BCd34f93a1C206d68b1eFba';
+
+const PRICING = {
+    onchain: 0.20,
+    complete: 0.50
+};
+
+const baseProvider = new ethers.providers.JsonRpcProvider('https://mainnet.base.org');
+const usedPayments = new Set();
 
 exports.handler = async (event, context) => {
-  // CORS headers
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, PAYMENT-SIGNATURE, PAYMENT-RESPONSE',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Content-Type': 'application/json'
-  };
-
-  // Handle OPTIONS (preflight)
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: ''
-    };
-  }
-
-  // Check if payment is provided
-  const paymentSignature = event.headers['payment-signature'];
-  
-  if (!paymentSignature) {
-    // No payment - return 402 Payment Required
-    
-    const x402Response = {
-      x402Version: 2,
-      error: "Payment required",
-      accepts: [
-        {
-          scheme: "exact",
-          network: "eip155:8453",  // Base mainnet
-          amount: "500000",  // $0.50 in USDC (6 decimals)
-          payTo: "0x71fd4359eB2da83C1BCd34f93a1C206d68b1eFba",
-          maxTimeoutSeconds: 300,
-          asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  // USDC on Base
-          extra: {
-            description: "0xDvta Solana Token Forensic Analysis",
-            provider: "0xDvta Forensic Unit"
-          }
-        }
-      ],
-      resource: {
-        url: "https://0xdvta-agent.netlify.app/.netlify/functions/analyze",
-        description: "Deep forensic analysis of Solana tokens including on-chain scan, technical audit, money flow tracking, and sniper watch",
-        mimeType: "application/json"
-      },
-      extensions: {
-        bazaar: {
-          info: {
-            input: {
-              tokenAddress: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-              analysisDepth: "deep",
-              includeHolders: true
-            },
-            output: {
-              success: true,
-              tokenAddress: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-              riskScore: 65,
-              analysis: {
-                onChainScan: { status: "completed" },
-                technicalAudit: { status: "completed" },
-                moneyFlow: { status: "completed" },
-                sniperWatch: { status: "completed" }
-              }
-            }
-          },
-          schema: {
-            input: {
-              type: "object",
-              properties: {
-                tokenAddress: {
-                  type: "string",
-                  description: "Solana token address (base58 format)"
-                },
-                analysisDepth: {
-                  type: "string",
-                  enum: ["basic", "deep", "technical", "flow", "sniper", "complete"],
-                  description: "Level of forensic analysis"
-                },
-                includeHolders: {
-                  type: "boolean",
-                  description: "Include holder distribution analysis"
-                }
-              },
-              required: ["tokenAddress"]
-            },
-            output: {
-              type: "object",
-              properties: {
-                success: { type: "boolean" },
-                tokenAddress: { type: "string" },
-                riskScore: { type: "number" },
-                analysis: { type: "object" }
-              }
-            }
-          }
-        }
-      }
+    const headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type, X-Payment-Signature, X-Payment-Chain',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Content-Type': 'application/json'
     };
 
-    // Add PAYMENT-REQUIRED header (V2 format)
-    headers['PAYMENT-REQUIRED'] = JSON.stringify(x402Response.accepts[0]);
-
-    return {
-      statusCode: 402,
-      headers,
-      body: JSON.stringify(x402Response)
-    };
-  }
-
-  // Payment provided - process the request
-  try {
-    // Parse request body
-    const requestBody = JSON.parse(event.body || '{}');
-    const { tokenAddress, analysisDepth = "deep", includeHolders = true } = requestBody;
-
-    if (!tokenAddress) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: "Missing required parameter: tokenAddress"
-        })
-      };
+    if (event.httpMethod === 'OPTIONS') {
+        return { statusCode: 200, headers, body: '' };
     }
 
-    // TODO: Verify payment signature here
-    // For now, we'll simulate the analysis
+    if (event.httpMethod !== 'POST') {
+        return {
+            statusCode: 405,
+            headers,
+            body: JSON.stringify({ error: 'Method not allowed' })
+        };
+    }
 
-    // Simulate analysis (remplace par ton vrai code)
-    const analysis = {
-      success: true,
-      tokenAddress,
-      analysisDepth,
-      timestamp: new Date().toISOString(),
-      riskScore: Math.floor(Math.random() * 100),
-      analysis: {
-        onChainScan: {
-          status: "completed",
-          findings: ["Contract verified", "Liquidity locked", "No mint authority"],
-          liquidityUSD: 1250000,
-          holders: 15420
-        },
-        technicalAudit: {
-          status: "completed",
-          vulnerabilities: [],
-          securityScore: 85
-        },
-        moneyFlow: {
-          status: analysisDepth === "flow" || analysisDepth === "complete" ? "completed" : "not_requested",
-          largestTransfers: []
-        },
-        sniperWatch: {
-          status: analysisDepth === "sniper" || analysisDepth === "complete" ? "completed" : "not_requested",
-          suspiciousWallets: []
-        },
-        holderDistribution: includeHolders ? {
-          top10Concentration: "32%",
-          totalHolders: 15420
-        } : null
-      },
-      recommendations: [
-        "Monitor liquidity pool movements",
-        "Watch for large wallet accumulation"
-      ]
-    };
+    try {
+        const body = JSON.parse(event.body);
+        const { scanId, analysisTypes } = body;
+        const paymentSignature = event.headers['x-payment-signature'];
+        const paymentChain = event.headers['x-payment-chain'];
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify(analysis)
-    };
+        console.log('=== ANALYZE REQUEST ===');
+        console.log('Scan ID:', scanId);
+        console.log('Types:', analysisTypes);
+        console.log('Payment:', paymentSignature);
 
-  } catch (error) {
-    console.error('Analysis error:', error);
-    
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({
-        error: "Analysis failed",
-        message: error.message
-      })
-    };
-  }
+        if (!scanId || !analysisTypes || analysisTypes.length === 0) {
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: 'scanId and analysisTypes required' })
+            };
+        }
+
+        // Calculer le montant requis
+        let requiredAmount = 0;
+        analysisTypes.forEach(type => {
+            requiredAmount += PRICING[type] || 0;
+        });
+
+        console.log('Required amount:', requiredAmount);
+
+        if (!paymentSignature) {
+            return {
+                statusCode: 402,
+                headers,
+                body: JSON.stringify({
+                    error: 'Payment required',
+                    amount: requiredAmount
+                })
+            };
+        }
+
+        if (usedPayments.has(paymentSignature)) {
+            return {
+                statusCode: 402,
+                headers,
+                body: JSON.stringify({ error: 'Payment already used' })
+            };
+        }
+
+        // Vérifier le paiement
+        let isValid = false;
+
+        if (paymentChain === 'base') {
+            isValid = await verifyBasePayment(paymentSignature, requiredAmount);
+        } else if (paymentChain === 'solana') {
+            // TODO: Implémenter Solana
+            isValid = true;
+        }
+
+        if (!isValid) {
+            return {
+                statusCode: 402,
+                headers,
+                body: JSON.stringify({ error: 'Invalid payment' })
+            };
+        }
+
+        usedPayments.add(paymentSignature);
+
+        // === FAIRE L'ANALYSE ===
+        const results = await performAnalysis(scanId, analysisTypes);
+
+        return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify(results)
+        };
+
+    } catch (error) {
+        console.error('Analysis error:', error);
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ error: error.message })
+        };
+    }
 };
+
+async function verifyBasePayment(txHash, requiredAmount) {
+    try {
+        const receipt = await baseProvider.getTransactionReceipt(txHash);
+        if (!receipt || !receipt.status) return false;
+
+        const tx = await baseProvider.getTransaction(txHash);
+        if (tx.to.toLowerCase() !== USDC_CONTRACT_BASE.toLowerCase()) return false;
+
+        const iface = new ethers.utils.Interface([
+            'function transfer(address to, uint256 amount) returns (bool)'
+        ]);
+
+        const decoded = iface.parseTransaction({ data: tx.data });
+        if (decoded.args.to.toLowerCase() !== RECIPIENT_BASE.toLowerCase()) return false;
+
+        const amount = parseFloat(ethers.utils.formatUnits(decoded.args.amount, 6));
+        
+        return amount >= requiredAmount;
+
+    } catch (error) {
+        console.error('Verification error:', error);
+        return false;
+    }
+}
+
+async function performAnalysis(scanId, analysisTypes) {
+    // TODO: Intégrer avec ton vrai service d'analyse
+    console.log('Performing analysis:', analysisTypes);
+
+    return {
+        scanId: scanId,
+        analysisTypes: analysisTypes,
+        timestamp: new Date().toISOString(),
+        results: {
+            onchain: analysisTypes.includes('onchain') ? {
+                holders: Math.floor(Math.random() * 10000),
+                liquidityPools: Math.floor(Math.random() * 10),
+                topHolders: []
+            } : null,
+            complete: analysisTypes.includes('complete') ? {
+                fullReport: true,
+                score: Math.floor(Math.random() * 100)
+            } : null
+        },
+        downloadUrl: `/downloads/${scanId}_analysis.json`,
+        status: 'completed'
+    };
+}
