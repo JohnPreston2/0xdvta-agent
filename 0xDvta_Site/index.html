@@ -8,7 +8,10 @@
     <!-- Load Web3 SDKs -->
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <script src="https://unpkg.com/@solana/web3.js@1.87.6/lib/index.iife.min.js"></script>
-    <script src="https://unpkg.com/@solana/spl-token@0.3.9/lib/index.iife.min.js"></script>
+    
+    <!-- WALLET ADAPTERS pour Solana -->
+    <script src="https://unpkg.com/@solana/wallet-adapter-base@0.9.23/lib/index.iife.js"></script>
+    <script src="https://unpkg.com/@solana/wallet-adapter-phantom@0.9.24/lib/index.iife.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -251,8 +254,7 @@
             font-size: 32px;
             font-weight: 700;
             color: var(--primary);
-            margin: 24px 0;
-            letter-spacing: -0.02em;
+            margin: 16px 0;
         }
 
         .btn-primary {
@@ -276,19 +278,60 @@
         .btn-primary:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            transform: none;
+        }
+
+        .btn-secondary {
+            width: 100%;
+            padding: 14px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 12px;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .status {
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-top: 12px;
+            min-height: 20px;
+        }
+
+        .status.loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        .status.error {
+            color: #ef4444;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
         }
 
         .analysis-grid {
             display: grid;
             gap: 12px;
-            margin: 20px 0;
+            margin-bottom: 20px;
         }
 
         .analysis-option {
             padding: 16px;
             background: var(--bg);
-            border: 1px solid var(--border);
+            border: 2px solid var(--border);
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s;
@@ -309,7 +352,7 @@
         .analysis-option input[type="checkbox"] {
             width: 18px;
             height: 18px;
-            accent-color: var(--primary);
+            cursor: pointer;
         }
 
         .analysis-info {
@@ -318,7 +361,7 @@
 
         .analysis-name {
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             margin-bottom: 4px;
         }
 
@@ -333,107 +376,72 @@
             color: var(--primary);
         }
 
-        .result-box {
-            background: var(--bg);
-            border: 1px solid var(--success);
+        .total-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
             border-radius: 8px;
             padding: 16px;
-            margin: 16px 0;
-        }
-
-        .result-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
         }
 
-        .result-title {
+        .total-label {
             font-size: 14px;
-            font-weight: 600;
-            color: var(--success);
-        }
-
-        .result-info {
-            font-size: 12px;
             color: var(--text-dim);
-            line-height: 1.6;
         }
 
-        .download-btn {
-            padding: 8px 16px;
-            background: var(--success);
-            border: none;
-            border-radius: 6px;
-            color: white;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .download-btn:hover {
-            transform: translateY(-1px);
-        }
-
-        .status {
-            text-align: center;
-            padding: 12px;
-            font-size: 13px;
-            color: var(--text-dim);
-            min-height: 44px;
-        }
-
-        .status.loading::after {
-            content: "...";
-            animation: dots 1.5s steps(4, end) infinite;
-        }
-
-        .status.error {
-            color: #ef4444;
-        }
-
-        @keyframes dots {
-            0%, 20% { content: "."; }
-            40% { content: ".."; }
-            60%, 100% { content: "..."; }
+        .total-amount {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
         }
 
         .footer {
             text-align: center;
-            padding: 24px 0;
+            margin-top: 48px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .footer-text {
             font-size: 12px;
             color: var(--text-dim);
+        }
+
+        .scan-result {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            line-height: 1.6;
         }
     </style>
 </head>
 <body>
-
     <div class="container">
         <div class="header">
-            <img src="logo.png" alt="0xDvta" class="logo" onerror="this.src='https://via.placeholder.com/64'">
+            <img src="logo.png" alt="0xDvta Logo" class="logo">
             <h1>0xDvta</h1>
-            <div class="subtitle">AI-Powered Token Forensics</div>
+            <p class="subtitle">AI-Powered Token Forensics</p>
         </div>
 
-        <!-- Wallet Section -->
+        <!-- Wallet Connection -->
         <div class="wallet-section">
             <div class="wallet-header">
                 <span class="wallet-label">Payment Network</span>
                 <div class="chain-selector">
-                    <button class="chain-btn" onclick="selectChain('base')">Base</button>
-                    <button class="chain-btn active" onclick="selectChain('solana')">Solana</button>
+                    <button class="chain-btn active" onclick="selectChain('base')" id="btn-base">Base</button>
+                    <button class="chain-btn" onclick="selectChain('solana')" id="btn-solana">Solana</button>
                 </div>
             </div>
-            <button class="connect-btn" id="connect-btn" onclick="connectWallet()">
-                Connect Wallet
-            </button>
-            <div id="wallet-address" style="display: none;"></div>
+            <button class="connect-btn" id="connect-btn" onclick="connectWallet()">Connect Wallet</button>
+            <div class="wallet-address" id="wallet-address" style="display:none;"></div>
         </div>
 
-        <!-- Steps -->
+        <!-- Progress Steps -->
         <div class="steps">
             <div class="step active" id="step-1-indicator">
                 <div class="step-number">1</div>
@@ -450,35 +458,24 @@
             <div class="card">
                 <div class="input-group">
                     <label>Token Address (Solana)</label>
-                    <input type="text" id="token-address" placeholder="BANKJmvhT8tiJRsBSS1n2HryMBPvT5Ze4HU95DUAmeta">
+                    <input type="text" id="token-address" placeholder="Enter Solana token address">
                 </div>
-
                 <div class="price-tag">$0.30 USDC</div>
-
-                <button class="btn-primary" onclick="startScan()">
-                    Scan Token
-                </button>
+                <button class="btn-primary" onclick="startScan()">Scan Token</button>
+                <div class="status" id="scan-status">Connect wallet to begin</div>
             </div>
-
-            <div class="status" id="scan-status">Connect wallet to begin</div>
         </div>
 
         <!-- Step 2: Analysis -->
         <div class="section" id="step-2">
-            <div class="result-box" id="scan-result">
-                <div class="result-header">
-                    <div>
-                        <div class="result-title">✓ Scan Complete</div>
-                        <div class="result-info" id="scan-info"></div>
-                    </div>
-                    <button class="download-btn" onclick="downloadJSON()">
-                        Download
-                    </button>
-                </div>
+            <div class="card">
+                <h3 style="margin-bottom: 16px; font-size: 16px;">✓ Scan Complete</h3>
+                <div class="scan-result" id="scan-info"></div>
+                <button class="btn-secondary" onclick="downloadJSON()">Download</button>
             </div>
 
             <div class="card">
-                <label>Select Analysis</label>
+                <h3 style="margin-bottom: 16px; font-size: 16px;">Select Analysis</h3>
                 <div class="analysis-grid">
                     <div class="analysis-option" onclick="toggleAnalysis('onchain')">
                         <input type="checkbox" id="check-onchain">
@@ -499,195 +496,294 @@
                     </div>
                 </div>
 
-                <div class="price-tag" id="analysis-total">Select options</div>
+                <div class="total-section">
+                    <span class="total-label">Total</span>
+                    <span class="total-amount" id="analysis-total">Select options</span>
+                </div>
 
-                <button class="btn-primary" id="analyze-btn" onclick="startAnalysis()" disabled>
-                    Run Analysis
-                </button>
+                <button class="btn-primary" id="analyze-btn" onclick="startAnalysis()" disabled>Run Analysis</button>
+                <div class="status" id="analysis-status"></div>
             </div>
-
-            <div class="status" id="analysis-status"></div>
         </div>
 
         <div class="footer">
-            Powered by X402 Protocol • Base & Solana
+            <p class="footer-text">Powered by X402 Protocol • Base & Solana</p>
         </div>
     </div>
 
     <script>
-        // === X402 PAYMENT CONFIGURATION ===
+        // === CONFIGURATION ===
         const USDC_MINT_SOLANA = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
         const USDC_CONTRACT_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
-        const RECIPIENT_SOLANA = 'nzEeqCR7ZnjoZU31fgUoLfP7FEMqj968zN4UBSQyXLP';
-        const RECIPIENT_BASE = '0x71fd4359eB2da83C1BCd34f93a1C206d68b1eFba';
+        const RECIPIENT_SOLANA = 'YOUR_SOLANA_ADDRESS_HERE'; // ⚠️ REMPLACE ICI
+        const RECIPIENT_BASE = '0xYOUR_BASE_ADDRESS_HERE'; // ⚠️ REMPLACE ICI
         
-        let currentChain = 'solana';
-        let walletAddress = null;
-        let walletProvider = null;
-        let scanData = null;
-        let selectedAnalyses = new Set();
+        const BASE_CHAIN_ID = 8453;
+        const BASE_RPC = 'https://mainnet.base.org';
 
         const PRICING = {
+            scan: 0.30,
             onchain: 0.20,
             complete: 0.50
         };
 
+        // === STATE ===
+        let selectedChain = 'base';
+        let walletAddress = null;
+        let walletProvider = null;
+        let solanaWalletAdapter = null;
+        let scanData = null;
+        let selectedAnalyses = new Set();
+
         // === CHAIN SELECTION ===
         function selectChain(chain) {
-            currentChain = chain;
-            document.querySelectorAll('.chain-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            selectedChain = chain;
             
+            document.querySelectorAll('.chain-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(`btn-${chain}`).classList.add('active');
+            
+            // Reset wallet
             walletAddress = null;
             walletProvider = null;
+            solanaWalletAdapter = null;
             document.getElementById('wallet-address').style.display = 'none';
-            document.getElementById('connect-btn').style.display = 'block';
+            document.getElementById('connect-btn').textContent = 'Connect Wallet';
+            document.getElementById('connect-btn').disabled = false;
         }
 
         // === WALLET CONNECTION ===
         async function connectWallet() {
-            const status = document.getElementById('scan-status');
+            const btn = document.getElementById('connect-btn');
+            btn.disabled = true;
+            btn.textContent = 'Connecting...';
 
             try {
-                if (currentChain === 'solana') {
-                    if (typeof window.solana === 'undefined') {
-                        alert("Please install Phantom Wallet!");
-                        window.open("https://phantom.app/", "_blank");
-                        return;
-                    }
-
-                    const resp = await window.solana.connect();
-                    walletAddress = resp.publicKey.toString();
-                    walletProvider = window.solana;
-                    
+                if (selectedChain === 'base') {
+                    await connectBaseWallet();
                 } else {
-                    // === BASE CHAIN CONNECTION (FIXED) ===
-                    if (typeof window.ethereum === 'undefined') {
-                        alert("Please install MetaMask!");
-                        window.open("https://metamask.io/download/", "_blank");
-                        return;
-                    }
-
-                    // 1. FIRST switch to Base chain BEFORE creating provider
-                    try {
-                        await window.ethereum.request({
-                            method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: '0x2105' }], // 8453 in hex
-                        });
-                    } catch (switchError) {
-                        // If Base is not added to wallet, add it
-                        if (switchError.code === 4902) {
-                            await window.ethereum.request({
-                                method: 'wallet_addEthereumChain',
-                                params: [{
-                                    chainId: '0x2105',
-                                    chainName: 'Base',
-                                    nativeCurrency: {
-                                        name: 'Ethereum',
-                                        symbol: 'ETH',
-                                        decimals: 18
-                                    },
-                                    rpcUrls: ['https://mainnet.base.org'],
-                                    blockExplorerUrls: ['https://basescan.org']
-                                }]
-                            });
-                        } else {
-                            throw switchError;
-                        }
-                    }
-
-                    // 2. NOW create provider with explicit Base network config
-                    const provider = new ethers.providers.Web3Provider(window.ethereum, {
-                        name: 'base',
-                        chainId: 8453
-                    });
-                    
-                    await provider.send("eth_requestAccounts", []);
-                    const signer = provider.getSigner();
-                    walletAddress = await signer.getAddress();
-                    walletProvider = provider;
+                    await connectSolanaWallet();
                 }
-
-                document.getElementById('wallet-address').innerHTML = 
-                    `<div class="wallet-address">${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}</div>`;
+                
+                document.getElementById('wallet-address').textContent = 
+                    walletAddress.slice(0, 6) + '...' + walletAddress.slice(-4);
                 document.getElementById('wallet-address').style.display = 'block';
-                document.getElementById('connect-btn').style.display = 'none';
-                status.textContent = 'Enter token address to scan';
-
+                btn.textContent = 'Connected ✓';
+                document.getElementById('scan-status').textContent = 'Ready to scan';
             } catch (err) {
-                console.error(err);
-                status.textContent = `Error: ${err.message}`;
-                status.classList.add('error');
+                console.error('Connection error:', err);
+                alert(`Failed to connect: ${err.message}`);
+                btn.textContent = 'Connect Wallet';
+                btn.disabled = false;
             }
         }
 
-        // === X402 PAYMENT HANDLER ===
+        // === BASE WALLET (CORRIGÉ) ===
+        async function connectBaseWallet() {
+            if (typeof window.ethereum === 'undefined') {
+                throw new Error("Please install MetaMask or Coinbase Wallet");
+            }
+            
+            // Initialiser le provider
+            walletProvider = new ethers.providers.Web3Provider(window.ethereum);
+            
+            // Demander la connexion
+            const accounts = await window.ethereum.request({ 
+                method: 'eth_requestAccounts' 
+            });
+            
+            if (!accounts || accounts.length === 0) {
+                throw new Error("No accounts found");
+            }
+            
+            walletAddress = accounts[0];
+            
+            // Vérifier/Switch vers Base
+            const currentChainId = await window.ethereum.request({ 
+                method: 'eth_chainId' 
+            });
+            
+            if (parseInt(currentChainId, 16) !== BASE_CHAIN_ID) {
+                try {
+                    // Essayer de switch vers Base
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: '0x2105' }], // 8453 en hex
+                    });
+                } catch (switchError) {
+                    // Si Base n'est pas dans le wallet, l'ajouter
+                    if (switchError.code === 4902) {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: '0x2105',
+                                chainName: 'Base',
+                                nativeCurrency: {
+                                    name: 'Ethereum',
+                                    symbol: 'ETH',
+                                    decimals: 18
+                                },
+                                rpcUrls: [BASE_RPC],
+                                blockExplorerUrls: ['https://basescan.org']
+                            }]
+                        });
+                    } else {
+                        throw switchError;
+                    }
+                }
+            }
+            
+            // Refresh provider après le switch
+            walletProvider = new ethers.providers.Web3Provider(window.ethereum);
+        }
+
+        // === SOLANA WALLET (CORRIGÉ) ===
+        async function connectSolanaWallet() {
+            // Vérifier Phantom
+            if (!window.solana || !window.solana.isPhantom) {
+                throw new Error("Please install Phantom wallet");
+            }
+            
+            try {
+                // Connecter Phantom
+                const response = await window.solana.connect();
+                walletAddress = response.publicKey.toString();
+                solanaWalletAdapter = window.solana;
+                
+                console.log('Phantom connected:', walletAddress);
+            } catch (err) {
+                if (err.code === 4001) {
+                    throw new Error("Connection rejected by user");
+                }
+                throw err;
+            }
+        }
+
+        // === PAIEMENT X402 (CORRIGÉ) ===
         async function createX402Payment(amountUSD) {
-            if (currentChain === 'solana') {
+            if (!walletAddress) {
+                throw new Error("Wallet not connected");
+            }
+
+            console.log(`Creating ${selectedChain} payment for $${amountUSD} USDC`);
+
+            if (selectedChain === 'solana') {
                 return await createSolanaPayment(amountUSD);
             } else {
                 return await createBasePayment(amountUSD);
             }
         }
 
+        // === SOLANA PAYMENT (VERSION SIMPLIFIÉE) ===
         async function createSolanaPayment(amountUSD) {
-            const amountUSDC = Math.floor(amountUSD * 1_000_000); // USDC has 6 decimals
+            if (!solanaWalletAdapter) {
+                throw new Error("Solana wallet not connected");
+            }
+
+            const amountLamports = Math.floor(amountUSD * 1_000_000); // USDC = 6 decimals
             
-            const connection = new solanaWeb3.Connection('https://api.mainnet-beta.solana.com');
-            const publicKey = new solanaWeb3.PublicKey(walletAddress);
-            const recipientPubkey = new solanaWeb3.PublicKey(RECIPIENT_SOLANA);
+            // Créer la connection
+            const connection = new solanaWeb3.Connection(
+                'https://api.mainnet-beta.solana.com',
+                'confirmed'
+            );
+            
+            const fromPubkey = new solanaWeb3.PublicKey(walletAddress);
+            const toPubkey = new solanaWeb3.PublicKey(RECIPIENT_SOLANA);
             const usdcMint = new solanaWeb3.PublicKey(USDC_MINT_SOLANA);
 
-            // Get token accounts
-            const fromTokenAccount = await splToken.Token.getAssociatedTokenAddress(
-                splToken.ASSOCIATED_TOKEN_PROGRAM_ID,
-                splToken.TOKEN_PROGRAM_ID,
-                usdcMint,
-                publicKey
-            );
+            // SOLUTION: Utiliser les fonctions modernes de @solana/spl-token
+            // Pour simplifier, on utilise une transfer instruction basique
+            // Tu devras installer @solana/spl-token correctement pour utiliser getOrCreateAssociatedTokenAccount
+            
+            // Version simplifiée: Transfer direct (nécessite que les ATA existent)
+            const TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+            
+            // Calculer les Associated Token Accounts
+            const getAssociatedTokenAddress = (mint, owner) => {
+                const [address] = solanaWeb3.PublicKey.findProgramAddressSync(
+                    [
+                        owner.toBuffer(),
+                        TOKEN_PROGRAM_ID.toBuffer(),
+                        mint.toBuffer(),
+                    ],
+                    new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL')
+                );
+                return address;
+            };
 
-            const toTokenAccount = await splToken.Token.getAssociatedTokenAddress(
-                splToken.ASSOCIATED_TOKEN_PROGRAM_ID,
-                splToken.TOKEN_PROGRAM_ID,
-                usdcMint,
-                recipientPubkey
-            );
+            const fromTokenAccount = getAssociatedTokenAddress(usdcMint, fromPubkey);
+            const toTokenAccount = getAssociatedTokenAddress(usdcMint, toPubkey);
 
-            // Create transfer instruction
-            const transaction = new solanaWeb3.Transaction().add(
-                splToken.Token.createTransferInstruction(
-                    splToken.TOKEN_PROGRAM_ID,
-                    fromTokenAccount,
-                    toTokenAccount,
-                    publicKey,
-                    [],
-                    amountUSDC
-                )
-            );
+            // Créer l'instruction de transfer
+            const transferInstruction = new solanaWeb3.TransactionInstruction({
+                keys: [
+                    { pubkey: fromTokenAccount, isSigner: false, isWritable: true },
+                    { pubkey: toTokenAccount, isSigner: false, isWritable: true },
+                    { pubkey: fromPubkey, isSigner: true, isWritable: false },
+                ],
+                programId: TOKEN_PROGRAM_ID,
+                data: Buffer.from([
+                    3, // Transfer instruction
+                    ...new Uint8Array(new BigUint64Array([BigInt(amountLamports)]).buffer)
+                ])
+            });
 
-            transaction.feePayer = publicKey;
-            transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+            // Créer la transaction
+            const transaction = new solanaWeb3.Transaction();
+            transaction.add(transferInstruction);
+            
+            // Récupérer le blockhash récent
+            const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+            transaction.recentBlockhash = blockhash;
+            transaction.feePayer = fromPubkey;
 
-            // Sign and send
-            const signed = await walletProvider.signTransaction(transaction);
-            const signature = await connection.sendRawTransaction(signed.serialize());
-            await connection.confirmTransaction(signature);
+            // Signer et envoyer avec Phantom
+            const signed = await solanaWalletAdapter.signAndSendTransaction(transaction);
+            
+            // Attendre la confirmation
+            await connection.confirmTransaction({
+                signature: signed.signature,
+                blockhash: blockhash,
+                lastValidBlockHeight: lastValidBlockHeight
+            });
 
-            return signature;
+            console.log('Solana payment signature:', signed.signature);
+            return signed.signature;
         }
 
+        // === BASE PAYMENT (CORRIGÉ) ===
         async function createBasePayment(amountUSD) {
+            if (!walletProvider) {
+                throw new Error("Base wallet not connected");
+            }
+
             const amountUSDC = ethers.utils.parseUnits(amountUSD.toString(), 6);
             
             const signer = walletProvider.getSigner();
             const usdcContract = new ethers.Contract(
                 USDC_CONTRACT_BASE,
-                ['function transfer(address to, uint256 amount) returns (bool)'],
+                [
+                    'function transfer(address to, uint256 amount) returns (bool)',
+                    'function balanceOf(address owner) view returns (uint256)'
+                ],
                 signer
             );
 
+            // Vérifier le balance
+            const balance = await usdcContract.balanceOf(walletAddress);
+            if (balance.lt(amountUSDC)) {
+                throw new Error(`Insufficient USDC balance. You have ${ethers.utils.formatUnits(balance, 6)} USDC`);
+            }
+
+            // Envoyer la transaction
             const tx = await usdcContract.transfer(RECIPIENT_BASE, amountUSDC);
+            console.log('Transaction sent:', tx.hash);
+            
+            // Attendre la confirmation
             const receipt = await tx.wait();
+            console.log('Transaction confirmed:', receipt.transactionHash);
             
             return receipt.transactionHash;
         }
@@ -712,7 +808,7 @@
                 status.textContent = "Initiating scan";
                 status.classList.add('loading');
 
-                // Try without payment first
+                // Essayer sans paiement d'abord
                 const response = await fetch(`/api/scan`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -720,19 +816,20 @@
                 });
 
                 if (response.status === 402) {
-                    status.textContent = "Payment required - Processing USDC payment";
+                    status.textContent = "Processing USDC payment";
                     
-                    // Create real payment
-                    const signature = await createX402Payment(0.30);
+                    // Créer le paiement
+                    const signature = await createX402Payment(PRICING.scan);
                     
                     status.textContent = "Payment sent - Waiting for confirmation";
                     
-                    // Retry with payment signature
+                    // Retry avec la signature
                     const paidResponse = await fetch(`/api/scan`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'PAYMENT-SIGNATURE': signature
+                            'X-PAYMENT-SIGNATURE': signature,
+                            'X-PAYMENT-CHAIN': selectedChain
                         },
                         body: JSON.stringify({ tokenAddress })
                     });
@@ -746,6 +843,8 @@
                 } else if (response.ok) {
                     scanData = await response.json();
                     showScanResults(scanData);
+                } else {
+                    throw new Error(`Scan failed: ${response.statusText}`);
                 }
 
             } catch (err) {
@@ -775,7 +874,7 @@
 
         function downloadJSON() {
             if (!scanData || !scanData.downloadUrl) return;
-            window.open(scanData.downloadUrl.replace('http://34.155.119.5', ''), '_blank');
+            window.open(scanData.downloadUrl, '_blank');
         }
 
         // === STEP 2: ANALYSIS ===
@@ -839,7 +938,7 @@
                 let price = 0;
                 selectedAnalyses.forEach(type => { price += PRICING[type]; });
 
-                // Create payment
+                // Créer le paiement
                 const signature = await createX402Payment(price);
                 
                 status.textContent = "Payment sent - Running analysis";
@@ -848,7 +947,8 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'PAYMENT-SIGNATURE': signature
+                        'X-PAYMENT-SIGNATURE': signature,
+                        'X-PAYMENT-CHAIN': selectedChain
                     },
                     body: JSON.stringify({
                         scanId: scanData.scanId,
