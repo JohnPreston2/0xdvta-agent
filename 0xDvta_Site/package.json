@@ -1,0 +1,8 @@
+{
+  "name": "0xdvta-api",
+  "version": "1.0.0",
+  "description": "0xDvta x402 payment API",
+  "dependencies": {
+    "ethers": "^5.7.2"
+  }
+}
